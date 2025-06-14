@@ -21,7 +21,6 @@ export type Database = {
           recipient_id: string
           recipient_phone: string
           sent_at: string | null
-          status: Database["public"]["Enums"]["communication_status"]
         }
         Insert: {
           communication_id: string
@@ -34,7 +33,6 @@ export type Database = {
           recipient_id: string
           recipient_phone: string
           sent_at?: string | null
-          status?: Database["public"]["Enums"]["communication_status"]
         }
         Update: {
           communication_id?: string
@@ -47,7 +45,6 @@ export type Database = {
           recipient_id?: string
           recipient_phone?: string
           sent_at?: string | null
-          status?: Database["public"]["Enums"]["communication_status"]
         }
         Relationships: [
           {
@@ -69,7 +66,6 @@ export type Database = {
       communications: {
         Row: {
           campaign_name: string
-          communication_type: Database["public"]["Enums"]["communication_type"]
           created_at: string
           delivered_count: number | null
           failed_count: number | null
@@ -79,13 +75,11 @@ export type Database = {
           sent_at: string | null
           sent_by: string
           sent_count: number | null
-          status: Database["public"]["Enums"]["communication_status"]
           target_audience: string
           target_filter: Json | null
         }
         Insert: {
           campaign_name: string
-          communication_type: Database["public"]["Enums"]["communication_type"]
           created_at?: string
           delivered_count?: number | null
           failed_count?: number | null
@@ -95,13 +89,11 @@ export type Database = {
           sent_at?: string | null
           sent_by: string
           sent_count?: number | null
-          status?: Database["public"]["Enums"]["communication_status"]
           target_audience: string
           target_filter?: Json | null
         }
         Update: {
           campaign_name?: string
-          communication_type?: Database["public"]["Enums"]["communication_type"]
           created_at?: string
           delivered_count?: number | null
           failed_count?: number | null
@@ -111,7 +103,6 @@ export type Database = {
           sent_at?: string | null
           sent_by?: string
           sent_count?: number | null
-          status?: Database["public"]["Enums"]["communication_status"]
           target_audience?: string
           target_filter?: Json | null
         }
@@ -134,7 +125,6 @@ export type Database = {
           observer_id: string
           report_text: string
           station_id: string | null
-          status: Database["public"]["Enums"]["report_status"]
           updated_at: string
         }
         Insert: {
@@ -145,7 +135,6 @@ export type Database = {
           observer_id: string
           report_text: string
           station_id?: string | null
-          status?: Database["public"]["Enums"]["report_status"]
           updated_at?: string
         }
         Update: {
@@ -156,7 +145,6 @@ export type Database = {
           observer_id?: string
           report_text?: string
           station_id?: string | null
-          status?: Database["public"]["Enums"]["report_status"]
           updated_at?: string
         }
         Relationships: [
@@ -216,7 +204,9 @@ export type Database = {
           phone_number: string | null
           profile_image: string | null
           role: string
-          verification_status: Database["public"]["Enums"]["verification_status"]
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
         }
         Insert: {
           assigned_station?: string | null
@@ -228,7 +218,9 @@ export type Database = {
           phone_number?: string | null
           profile_image?: string | null
           role: string
-          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
         }
         Update: {
           assigned_station?: string | null
@@ -240,7 +232,9 @@ export type Database = {
           phone_number?: string | null
           profile_image?: string | null
           role?: string
-          verification_status?: Database["public"]["Enums"]["verification_status"]
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
         }
         Relationships: []
       }
