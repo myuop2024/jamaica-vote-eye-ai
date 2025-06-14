@@ -137,7 +137,7 @@ export const UserManagement: React.FC = () => {
       if (action === 'status' && value) {
         const { error } = await supabase
           .from('profiles')
-          .update({ verification_status: value })
+          .update({ verification_status: value as 'pending' | 'verified' | 'rejected' })
           .in('id', selectedUsers);
 
         if (error) throw error;
