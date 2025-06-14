@@ -266,6 +266,14 @@ export const UserManagement: React.FC = () => {
     });
   };
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    filterUsers();
+  }, [users, searchTerm, roleFilter, statusFilter, stationFilter, dateFilter]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -382,7 +390,7 @@ export const UserManagement: React.FC = () => {
                 <Label>Verification Status</Label>
                 <Select
                   value={selectedUser.verification_status}
-                  onValueChange={(value) => updateUserStatus(selectedUser.id, value as any)}
+                  onValueChange={(value) => updateUserStatus(selectedUser.id, value as 'pending' | 'verified' | 'rejected')}
                 >
                   <SelectTrigger>
                     <SelectValue />
