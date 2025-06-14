@@ -28,29 +28,66 @@ export const SignupForm: React.FC = () => {
     setError('');
     setIsLoading(true);
 
+    // Add basic validation
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!name.trim()) {
+      setError('Name is required');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log('Attempting signup with:', { email, role, name });
+      
+      const { data, error: signupError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            name,
+            name: name.trim(),
             role,
-            phone_number: phoneNumber
+            phone_number: phoneNumber.trim() || null
           }
         }
       });
 
-      if (error) throw error;
+      console.log('Signup response:', { data, error: signupError });
 
-      toast({
-        title: "Success",
-        description: "Account created successfully! Please check your email for verification."
-      });
+      if (signupError) {
+        console.error('Signup error:', signupError);
+        
+        // Provide more specific error messages
+        if (signupError.message.includes('already registered')) {
+          setError('An account with this email already exists. Please try logging in instead.');
+        } else if (signupError.message.includes('invalid email')) {
+          setError('Please enter a valid email address.');
+        } else if (signupError.message.includes('weak password')) {
+          setError('Password is too weak. Please use at least 6 characters with a mix of letters and numbers.');
+        } else {
+          setError(`Signup failed: ${signupError.message}`);
+        }
+        return;
+      }
 
-      navigate('/login');
+      if (data.user) {
+        toast({
+          title: "Success",
+          description: role === 'admin' 
+            ? "Admin account created successfully! You can now log in."
+            : "Account created successfully! Please check your email for verification."
+        });
+
+        // For admin accounts, redirect directly to login since they're auto-verified
+        navigate('/login');
+      }
     } catch (err: any) {
-      setError(err.message);
+      console.error('Unexpected error:', err);
+      setError(`An unexpected error occurred: ${err.message || 'Please try again.'}`);
     } finally {
       setIsLoading(false);
     }
@@ -79,10 +116,18 @@ export const SignupForm: React.FC = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
+          {role === 'admin' && (
+            <Alert>
+              <AlertDescription className="text-blue-800">
+                <strong>Admin Account:</strong> Admin accounts are automatically verified and can access all system features immediately.
+              </AlertDescription>
+            </Alert>
+          )}
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Full Name *</Label>
               <Input
                 id="name"
                 type="text"
@@ -95,7 +140,7 @@ export const SignupForm: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email Address *</Label>
               <Input
                 id="email"
                 type="email"
@@ -108,19 +153,19 @@ export const SignupForm: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (Optional)</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter your phone number"
+                placeholder="Enter your phone number (optional)"
                 className="h-12"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">Role *</Label>
               <Select value={role} onValueChange={(value: 'observer' | 'admin') => setRole(value)}>
                 <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select your role" />
@@ -133,7 +178,7 @@ export const SignupForm: React.FC = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password * (minimum 6 characters)</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -142,6 +187,7 @@ export const SignupForm: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
+                  minLength={6}
                   className="h-12 pr-12"
                 />
                 <Button
