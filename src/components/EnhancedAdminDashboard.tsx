@@ -7,6 +7,8 @@ import { UserManagement } from '@/components/UserManagement';
 import { CommunicationsManager } from '@/components/CommunicationsManager';
 import { VerificationCenter } from '@/components/VerificationCenter';
 import { ReportsManager } from '@/components/ReportsManager';
+import { PollingStationsManager } from '@/components/PollingStationsManager';
+import { SystemSettings } from '@/components/SystemSettings';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboardData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -58,23 +60,9 @@ export const EnhancedAdminDashboard: React.FC = () => {
       case 'reports':
         return <ReportsManager />;
       case 'stations':
-        return (
-          <div className="text-center py-12">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Polling Stations Management
-            </h3>
-            <p className="text-gray-600">Coming soon...</p>
-          </div>
-        );
+        return <PollingStationsManager />;
       case 'settings':
-        return (
-          <div className="text-center py-12">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              System Settings
-            </h3>
-            <p className="text-gray-600">Coming soon...</p>
-          </div>
-        );
+        return <SystemSettings />;
       default:
         return (
           <DashboardOverview
