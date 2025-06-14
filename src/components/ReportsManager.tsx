@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +16,7 @@ interface ObservationReport {
   station_id?: string;
   report_text: string;
   status: 'submitted' | 'under_review' | 'resolved' | 'flagged';
-  attachments: any[];
+  attachments: any;
   location_data?: any;
   created_at: string;
   updated_at: string;
@@ -57,7 +56,14 @@ export const ReportsManager: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReports(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData = (data || []).map(report => ({
+        ...report,
+        attachments: Array.isArray(report.attachments) ? report.attachments : []
+      }));
+      
+      setReports(transformedData);
     } catch (error: any) {
       console.error('Error fetching reports:', error);
       toast({
@@ -317,7 +323,7 @@ export const ReportsManager: React.FC = () => {
                 <div>
                   <h4 className="font-semibold mb-2">Attachments</h4>
                   <div className="space-y-2">
-                    {selectedReport.attachments.map((attachment, index) => (
+                    {selectedReport.attachments.map((attachment: any, index: number) => (
                       <div key={index} className="bg-gray-50 p-2 rounded">
                         <p className="text-sm">{attachment.name || `Attachment ${index + 1}`}</p>
                       </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -54,7 +53,7 @@ export const VerificationCenter: React.FC = () => {
         .from('verification_documents')
         .select(`
           *,
-          profiles!inner(name, email, verification_status)
+          profiles!verification_documents_observer_id_fkey(name, email, verification_status)
         `)
         .order('created_at', { ascending: false });
 
@@ -267,7 +266,7 @@ export const VerificationCenter: React.FC = () => {
                   <h4 className="font-semibold">Observer Details</h4>
                   <p className="font-medium">{selectedDocument.profiles.name}</p>
                   <p className="text-sm text-gray-500">{selectedDocument.profiles.email}</p>
-                  <Badge className={getStatusBadge(selectedDocument.profiles.verification_status)} size="sm">
+                  <Badge className={getStatusBadge(selectedDocument.profiles.verification_status)}>
                     {selectedDocument.profiles.verification_status}
                   </Badge>
                 </div>

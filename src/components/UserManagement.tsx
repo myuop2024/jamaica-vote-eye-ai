@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +15,7 @@ interface UserProfile {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'observer';
+  role: string;
   verification_status: 'pending' | 'verified' | 'rejected';
   phone_number?: string;
   assigned_station?: string;
