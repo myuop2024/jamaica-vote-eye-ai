@@ -1,13 +1,13 @@
 
 import { useAuth } from '@/contexts/AuthContext';
-import { AdminDashboard } from '@/components/AdminDashboard';
+import { EnhancedAdminDashboard } from '@/components/EnhancedAdminDashboard';
 import { ObserverDashboard } from '@/components/ObserverDashboard';
 
 const Dashboard = () => {
   const { user } = useAuth();
 
   if (user?.role === 'admin') {
-    return <AdminDashboard />;
+    return <EnhancedAdminDashboard />;
   }
 
   return <ObserverDashboard />;
