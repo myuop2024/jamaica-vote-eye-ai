@@ -4,9 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Shield, MessageSquare, FileText, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, Shield, MessageSquare, FileText, CheckCircle, AlertTriangle, Clock, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AdminManagement } from './AdminManagement';
 
 interface DashboardStats {
   totalObservers: number;
@@ -36,6 +38,7 @@ export const AdminDashboard: React.FC = () => {
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     fetchDashboardData();
@@ -194,85 +197,120 @@ export const AdminDashboard: React.FC = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((stat, index) => (
-            <Card key={index} className="relative overflow-hidden">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                  </div>
-                  <div className={`${stat.color} p-3 rounded-lg`}>
-                    <stat.icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="management" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Management
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-              <CardDescription>Common administrative tasks</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full justify-start bg-green-600 hover:bg-green-700" size="sm">
-                <Users className="w-4 h-4 mr-2" />
-                Manage Observers
-              </Button>
-              <Button className="w-full justify-start bg-blue-600 hover:bg-blue-700" size="sm">
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Send Communications
-              </Button>
-              <Button className="w-full justify-start bg-purple-600 hover:bg-purple-700" size="sm">
-                <Shield className="w-4 h-4 mr-2" />
-                Verification Center
-              </Button>
-              <Button className="w-full justify-start bg-orange-600 hover:bg-orange-700" size="sm">
-                <FileText className="w-4 h-4 mr-2" />
-                View Reports
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-              <CardDescription>Latest system events and user actions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentActivity.length > 0 ? (
-                  recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-center space-x-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                      <div className="flex-shrink-0">
-                        <FileText className="w-5 h-5 text-green-500" />
+          <TabsContent value="overview" className="space-y-8">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {statCards.map((stat, index) => (
+                <Card key={index} className="relative overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                        <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                        <p className="text-xs text-gray-500">{activity.user}</p>
+                      <div className={`${stat.color} p-3 rounded-lg`}>
+                        <stat.icon className="w-6 h-6 text-white" />
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        {activity.time}
-                      </Badge>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>No recent activity</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Quick Actions */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+                  <CardDescription>Common administrative tasks</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button 
+                    className="w-full justify-start bg-green-600 hover:bg-green-700" 
+                    size="sm"
+                    onClick={() => setActiveTab('management')}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Manage Observers
+                  </Button>
+                  <Button 
+                    className="w-full justify-start bg-blue-600 hover:bg-blue-700" 
+                    size="sm"
+                    onClick={() => setActiveTab('management')}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Send Communications
+                  </Button>
+                  <Button 
+                    className="w-full justify-start bg-purple-600 hover:bg-purple-700" 
+                    size="sm"
+                    onClick={() => setActiveTab('management')}
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Verification Center
+                  </Button>
+                  <Button 
+                    className="w-full justify-start bg-orange-600 hover:bg-orange-700" 
+                    size="sm"
+                    onClick={() => setActiveTab('management')}
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    View Reports
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+                  <CardDescription>Latest system events and user actions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {recentActivity.length > 0 ? (
+                      recentActivity.map((activity, index) => (
+                        <div key={index} className="flex items-center space-x-4 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <div className="flex-shrink-0">
+                            <FileText className="w-5 h-5 text-green-500" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                            <p className="text-xs text-gray-500">{activity.user}</p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {activity.time}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>No recent activity</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="management">
+            <AdminManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
