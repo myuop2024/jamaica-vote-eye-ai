@@ -9,7 +9,289 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      communication_logs: {
+        Row: {
+          communication_id: string
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          external_id: string | null
+          id: string
+          message_content: string
+          recipient_id: string
+          recipient_phone: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["communication_status"]
+        }
+        Insert: {
+          communication_id: string
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_content: string
+          recipient_id: string
+          recipient_phone: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["communication_status"]
+        }
+        Update: {
+          communication_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          message_content?: string
+          recipient_id?: string
+          recipient_phone?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["communication_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_logs_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "communication_logs_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communications: {
+        Row: {
+          campaign_name: string
+          communication_type: Database["public"]["Enums"]["communication_type"]
+          created_at: string
+          delivered_count: number | null
+          failed_count: number | null
+          id: string
+          message_content: string
+          scheduled_at: string | null
+          sent_at: string | null
+          sent_by: string
+          sent_count: number | null
+          status: Database["public"]["Enums"]["communication_status"]
+          target_audience: string
+          target_filter: Json | null
+        }
+        Insert: {
+          campaign_name: string
+          communication_type: Database["public"]["Enums"]["communication_type"]
+          created_at?: string
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          message_content: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_by: string
+          sent_count?: number | null
+          status?: Database["public"]["Enums"]["communication_status"]
+          target_audience: string
+          target_filter?: Json | null
+        }
+        Update: {
+          campaign_name?: string
+          communication_type?: Database["public"]["Enums"]["communication_type"]
+          created_at?: string
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          message_content?: string
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_by?: string
+          sent_count?: number | null
+          status?: Database["public"]["Enums"]["communication_status"]
+          target_audience?: string
+          target_filter?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communications_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observation_reports: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          id: string
+          location_data: Json | null
+          observer_id: string
+          report_text: string
+          station_id: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          location_data?: Json | null
+          observer_id: string
+          report_text: string
+          station_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          id?: string
+          location_data?: Json | null
+          observer_id?: string
+          report_text?: string
+          station_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observation_reports_observer_id_fkey"
+            columns: ["observer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polling_stations: {
+        Row: {
+          address: string
+          assigned_observers: string[] | null
+          constituency: string
+          coordinates: Json | null
+          created_at: string
+          id: string
+          parish: string
+          station_code: string
+          station_name: string
+        }
+        Insert: {
+          address: string
+          assigned_observers?: string[] | null
+          constituency: string
+          coordinates?: Json | null
+          created_at?: string
+          id?: string
+          parish: string
+          station_code: string
+          station_name: string
+        }
+        Update: {
+          address?: string
+          assigned_observers?: string[] | null
+          constituency?: string
+          coordinates?: Json | null
+          created_at?: string
+          id?: string
+          parish?: string
+          station_code?: string
+          station_name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          assigned_station: string | null
+          created_at: string
+          email: string
+          id: string
+          last_login: string | null
+          name: string
+          phone_number: string | null
+          profile_image: string | null
+          role: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
+        }
+        Insert: {
+          assigned_station?: string | null
+          created_at?: string
+          email: string
+          id: string
+          last_login?: string | null
+          name: string
+          phone_number?: string | null
+          profile_image?: string | null
+          role: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+        }
+        Update: {
+          assigned_station?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          last_login?: string | null
+          name?: string
+          phone_number?: string | null
+          profile_image?: string | null
+          role?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
+        }
+        Relationships: []
+      }
+      verification_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          document_url: string
+          id: string
+          observer_id: string
+          verification_notes: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          document_url: string
+          id?: string
+          observer_id: string
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          document_url?: string
+          id?: string
+          observer_id?: string
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_documents_observer_id_fkey"
+            columns: ["observer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_documents_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +300,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      communication_status: "pending" | "sent" | "delivered" | "failed"
+      communication_type: "sms" | "whatsapp" | "email"
+      report_status: "submitted" | "under_review" | "resolved" | "flagged"
+      verification_status: "pending" | "verified" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +418,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      communication_status: ["pending", "sent", "delivered", "failed"],
+      communication_type: ["sms", "whatsapp", "email"],
+      report_status: ["submitted", "under_review", "resolved", "flagged"],
+      verification_status: ["pending", "verified", "rejected"],
+    },
   },
 } as const

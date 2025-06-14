@@ -25,10 +25,6 @@ export const LoginForm: React.FC = () => {
 
     try {
       await login(email, password);
-      toast({
-        title: "Login Successful",
-        description: "Welcome to Jamaica Electoral CRM"
-      });
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message);
@@ -60,14 +56,10 @@ export const LoginForm: React.FC = () => {
           )}
 
           <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-blue-900">Demo Accounts:</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong>Admin:</strong> admin@jamaicavote.gov / admin123
-              </div>
-              <div>
-                <strong>Observer:</strong> observer@jamaicavote.gov / observer123
-              </div>
+            <h3 className="font-semibold text-blue-900">Login Instructions:</h3>
+            <div className="space-y-2 text-sm text-blue-800">
+              <p>Use your registered email address and password to access the system.</p>
+              <p>Contact your administrator if you need assistance with your account.</p>
             </div>
           </div>
           
