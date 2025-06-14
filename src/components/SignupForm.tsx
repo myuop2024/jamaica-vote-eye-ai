@@ -1,33 +1,58 @@
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Shield, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export const LoginForm: React.FC = () => {
+export const SignupForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [role, setRole] = useState<'observer' | 'admin'>('observer');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role,
+            phone_number: phoneNumber
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Account created successfully! Please check your email for verification."
+      });
+
+      navigate('/login');
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -40,10 +65,10 @@ export const LoginForm: React.FC = () => {
           </div>
           <div>
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-700 to-black bg-clip-text text-transparent">
-              Jamaica Electoral CRM
+              Create Account
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Secure Electoral Observation Platform
+              Join the Electoral Observation Platform
             </CardDescription>
           </div>
         </CardHeader>
@@ -54,17 +79,21 @@ export const LoginForm: React.FC = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-
-          <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-blue-900">Test Admin Credentials:</h3>
-            <div className="space-y-2 text-sm text-blue-800">
-              <p><strong>Email:</strong> admin@electoral.gov.jm</p>
-              <p><strong>Password:</strong> Use the password you set during signup</p>
-              <p className="text-xs">Create this account using the signup form if it doesn't exist yet.</p>
-            </div>
-          </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
+                required
+                className="h-12"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input
@@ -76,6 +105,31 @@ export const LoginForm: React.FC = () => {
                 required
                 className="h-12"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number (Optional)</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Enter your phone number"
+                className="h-12"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={role} onValueChange={(value: 'observer' | 'admin') => setRole(value)}>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="observer">Observer</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="space-y-2">
@@ -110,20 +164,20 @@ export const LoginForm: React.FC = () => {
               {isLoading ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Signing In...
+                  Creating Account...
                 </div>
               ) : (
-                'Sign In'
+                'Create Account'
               )}
             </Button>
 
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/login')}
                 className="text-sm text-green-600 hover:text-green-800 underline"
               >
-                Don't have an account? Sign up
+                Already have an account? Sign in
               </button>
             </div>
           </form>

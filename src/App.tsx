@@ -8,36 +8,39 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import Unauthorized from "./pages/Unauthorized";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route 
-              path="/dashboard" 
+            <Route path="/signup" element={<Signup />} />
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
