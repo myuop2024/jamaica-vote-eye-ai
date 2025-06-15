@@ -36,7 +36,7 @@ export interface DiditAuditLog {
   old_status?: VerificationResult;
   new_status?: VerificationResult;
   performed_by?: string;
-  ip_address?: string;
+  ip_address?: unknown;
   user_agent?: string;
   metadata?: any;
   created_at: string;
