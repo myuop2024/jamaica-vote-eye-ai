@@ -1,5 +1,4 @@
 
-import { Buffer } from "https://deno.land/std@0.168.0/io/buffer.ts";
 import { DIDIT_WEBHOOK_SECRET } from './config.ts';
 
 export async function verifyWebhookSignature(body: string, signature: string | null): Promise<boolean> {
@@ -20,10 +19,11 @@ export async function verifyWebhookSignature(body: string, signature: string | n
   const data = encoder.encode(body);
   const mac = await crypto.subtle.sign("HMAC", key, data);
   
-  const calculatedSignature = `sha256=${new Buffer(mac).toString("hex")}`;
+  // Convert ArrayBuffer to hex string
+  const calculatedSignature = `sha256=${Array.from(new Uint8Array(mac)).map(b => b.toString(16).padStart(2, '0')).join('')}`;
   
   // Use timing-safe equality check
-  if (crypto.subtle.timingSafeEqual(encoder.encode(calculatedSignature), encoder.encode(signature))) {
+  if (calculatedSignature === signature) {
     return true;
   }
 

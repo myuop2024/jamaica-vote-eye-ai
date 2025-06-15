@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,12 +7,26 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { MapPin, FileText, CheckCircle, Phone, MessageSquare, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { VerificationPrompt } from '@/components/VerificationPrompt';
 
 export const ObserverDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [reportText, setReportText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
+
+  // Show verification prompt for unverified observers on mount
+  useEffect(() => {
+    if (user && user.verificationStatus !== 'verified') {
+      // Show prompt after a short delay to let the dashboard load
+      const timer = setTimeout(() => {
+        setShowVerificationPrompt(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
 
   const handleReportSubmit = async () => {
     if (!reportText.trim()) {
@@ -38,6 +52,11 @@ export const ObserverDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Verification Prompt Modal */}
+      {showVerificationPrompt && (
+        <VerificationPrompt onClose={() => setShowVerificationPrompt(false)} />
+      )}
+
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -86,9 +105,25 @@ export const ObserverDashboard: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">ID Verification</span>
-                  <Badge className="bg-green-100 text-green-800 border-green-200">
-                    Complete
-                  </Badge>
+                  {user?.verificationStatus === 'verified' ? (
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      Complete
+                    </Badge>
+                  ) : (
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                        Pending
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowVerificationPrompt(true)}
+                        className="text-xs h-6"
+                      >
+                        Verify Now
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Training Status</span>
