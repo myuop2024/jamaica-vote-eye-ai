@@ -108,11 +108,11 @@ export const EnhancedCommunicationsManager: React.FC = () => {
 
       if (createError) throw createError;
 
-      // Get target recipients
+      // Get target recipients - include verification_status in the query
       let recipients = [];
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('email, phone_number, name')
+        .select('email, phone_number, name, verification_status')
         .eq('role', 'observer');
 
       if (profilesError) throw profilesError;
