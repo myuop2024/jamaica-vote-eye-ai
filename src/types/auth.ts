@@ -1,9 +1,8 @@
-
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'observer';
+  role: 'admin' | 'observer' | 'roving_observer' | 'parish_coordinator';
   verificationStatus: 'pending' | 'verified' | 'rejected';
   profileImage?: string;
   phoneNumber?: string;

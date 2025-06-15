@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: profile.id,
           email: profile.email,
           name: profile.name,
-          role: profile.role as 'admin' | 'observer',
+          role: profile.role as User['role'],
           verificationStatus: profile.verification_status,
           profileImage: profile.profile_image,
           phoneNumber: profile.phone_number,

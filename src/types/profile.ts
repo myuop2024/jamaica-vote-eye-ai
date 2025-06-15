@@ -14,6 +14,7 @@ export interface ProfileFieldTemplate {
   admin_only: boolean;
   created_at: string;
   updated_at: string;
+  roles?: ('admin' | 'observer' | 'roving_observer' | 'parish_coordinator')[];
 }
 
 export type ProfileData = Record<string, any>; 

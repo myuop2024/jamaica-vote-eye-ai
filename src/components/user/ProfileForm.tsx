@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createClient } from '@supabase/supabase-js';
+import { useAuth } from '@/contexts/AuthContext';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
+  const { user } = useAuth();
   const [fields, setFields] = useState<ProfileFieldTemplate[]>([]);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [error, setError] = useState<string | null>(null);
@@ -99,74 +101,77 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
-          {fields.filter(f => f.visible_to_user).sort((a, b) => a.order - b.order).map(field => (
-            <div key={field.field_key} className="space-y-2">
-              <Label>{field.label}{field.required && ' *'}</Label>
-              {field.type === 'text' && (
-                <Input
-                  value={profileData[field.field_key] || ''}
-                  onChange={e => handleChange(field.field_key, e.target.value)}
-                  required={field.required}
-                />
-              )}
-              {field.type === 'number' && (
-                <Input
-                  type="number"
-                  value={profileData[field.field_key] || ''}
-                  onChange={e => handleChange(field.field_key, e.target.value)}
-                  required={field.required}
-                />
-              )}
-              {field.type === 'date' && (
-                <Input
-                  type="date"
-                  value={profileData[field.field_key] || ''}
-                  onChange={e => handleChange(field.field_key, e.target.value)}
-                  required={field.required}
-                />
-              )}
-              {field.type === 'select' && field.options && (
-                <Select
-                  value={profileData[field.field_key] || ''}
-                  onValueChange={v => handleChange(field.field_key, v)}
-                  required={field.required}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
+          {fields
+            .filter(f => f.visible_to_user && (!f.roles || f.roles.includes(user?.role)))
+            .sort((a, b) => a.order - b.order)
+            .map(field => (
+              <div key={field.field_key} className="space-y-2">
+                <Label>{field.label}{field.required && ' *'}</Label>
+                {field.type === 'text' && (
+                  <Input
+                    value={profileData[field.field_key] || ''}
+                    onChange={e => handleChange(field.field_key, e.target.value)}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'number' && (
+                  <Input
+                    type="number"
+                    value={profileData[field.field_key] || ''}
+                    onChange={e => handleChange(field.field_key, e.target.value)}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'date' && (
+                  <Input
+                    type="date"
+                    value={profileData[field.field_key] || ''}
+                    onChange={e => handleChange(field.field_key, e.target.value)}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'select' && field.options && (
+                  <Select
+                    value={profileData[field.field_key] || ''}
+                    onValueChange={v => handleChange(field.field_key, v)}
+                    required={field.required}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {field.options.map(opt => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                {field.type === 'checkbox' && field.options && (
+                  <div className="flex flex-col gap-2">
                     {field.options.map(opt => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      <label key={opt} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={Array.isArray(profileData[field.field_key]) && profileData[field.field_key].includes(opt)}
+                          onChange={e => {
+                            const arr = Array.isArray(profileData[field.field_key]) ? [...profileData[field.field_key]] : [];
+                            if (e.target.checked) arr.push(opt);
+                            else arr.splice(arr.indexOf(opt), 1);
+                            handleChange(field.field_key, arr);
+                          }}
+                        />
+                        {opt}
+                      </label>
                     ))}
-                  </SelectContent>
-                </Select>
-              )}
-              {field.type === 'checkbox' && field.options && (
-                <div className="flex flex-col gap-2">
-                  {field.options.map(opt => (
-                    <label key={opt} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={Array.isArray(profileData[field.field_key]) && profileData[field.field_key].includes(opt)}
-                        onChange={e => {
-                          const arr = Array.isArray(profileData[field.field_key]) ? [...profileData[field.field_key]] : [];
-                          if (e.target.checked) arr.push(opt);
-                          else arr.splice(arr.indexOf(opt), 1);
-                          handleChange(field.field_key, arr);
-                        }}
-                      />
-                      {opt}
-                    </label>
-                  ))}
-                </div>
-              )}
-              {field.type === 'file' && (
-                <Input
-                  type="file"
-                  onChange={e => handleChange(field.field_key, e.target.files?.[0])}
-                  required={field.required}
-                />
-              )}
-            </div>
-          ))}
+                  </div>
+                )}
+                {field.type === 'file' && (
+                  <Input
+                    type="file"
+                    onChange={e => handleChange(field.field_key, e.target.files?.[0])}
+                    required={field.required}
+                  />
+                )}
+              </div>
+            ))}
           <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save Profile'}</Button>
         </form>
       </CardContent>

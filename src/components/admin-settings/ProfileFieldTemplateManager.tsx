@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   getAllProfileFieldTemplates,
   createProfileFieldTemplate,
@@ -24,6 +25,13 @@ const FIELD_TYPES = [
   { value: 'file', label: 'File Upload' },
 ];
 
+const ROLES = [
+  { value: 'admin', label: 'Admin' },
+  { value: 'observer', label: 'Observer' },
+  { value: 'roving_observer', label: 'Roving Observer' },
+  { value: 'parish_coordinator', label: 'Parish Coordinator' },
+];
+
 export const ProfileFieldTemplateManager: React.FC = () => {
   const [fields, setFields] = useState<ProfileFieldTemplate[]>([]);
   const [editingField, setEditingField] = useState<ProfileFieldTemplate | null>(null);
@@ -38,6 +46,7 @@ export const ProfileFieldTemplateManager: React.FC = () => {
     default_value: '',
     visible_to_user: true,
     admin_only: false,
+    roles: ['admin', 'observer'],
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,6 +71,7 @@ export const ProfileFieldTemplateManager: React.FC = () => {
       default_value: '',
       visible_to_user: true,
       admin_only: false,
+      roles: ['admin', 'observer'],
     });
     setEditingField(null);
     setError(null);
@@ -203,6 +213,27 @@ export const ProfileFieldTemplateManager: React.FC = () => {
             <div className="flex items-center gap-2 mt-4">
               <Switch checked={form.admin_only} onCheckedChange={v => handleFormChange('admin_only', v)} />
               <Label>Admin Only</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>Visible To Roles</Label>
+              <div className="flex gap-4">
+                {ROLES.map(role => (
+                  <label key={role.value} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={form.roles.includes(role.value)}
+                      onCheckedChange={checked => {
+                        setForm((prev: any) => ({
+                          ...prev,
+                          roles: checked
+                            ? [...prev.roles, role.value]
+                            : prev.roles.filter((r: string) => r !== role.value),
+                        }));
+                      }}
+                    />
+                    {role.label}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <div className="flex gap-2 mt-4">
