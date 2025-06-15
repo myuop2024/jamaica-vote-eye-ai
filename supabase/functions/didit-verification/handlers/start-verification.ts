@@ -1,40 +1,62 @@
 
-import { DIDIT_API_KEY, DIDIT_API_BASE_URL, corsHeaders } from '../_shared/config.ts';
+import { DIDIT_API_KEY, DIDIT_API_BASE_URL, DIDIT_WORKFLOW_ID, corsHeaders } from '../_shared/config.ts';
 
 export async function handleStartVerification(supabaseClient: any, userId: string, verificationMethod: string, documentType?: string) {
   try {
     if (!DIDIT_API_KEY) throw new Error('DIDIT_API_KEY secret is not set.');
+    if (!DIDIT_WORKFLOW_ID) throw new Error('DIDIT_WORKFLOW_ID secret is not set.');
+
+    // Get user data for the session
+    const { data: userProfile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('name, email')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) throw new Error('User profile not found');
 
     const projectUrl = (Deno.env.get('SUPABASE_URL') ?? '').replace('/auth/v1', '');
-    const redirectUrl = `${projectUrl}/identity-verification`;
     const webhookUrl = `${projectUrl}/functions/v1/didit-verification`;
 
-    const apiResponse = await fetch(`${DIDIT_API_BASE_URL}/verifications`, {
+    // Create session using Didit's v2/session endpoint
+    const sessionPayload = {
+      workflow_id: DIDIT_WORKFLOW_ID,
+      user_data: {
+        email: userProfile.email,
+        first_name: userProfile.name.split(' ')[0] || userProfile.name,
+        last_name: userProfile.name.split(' ').slice(1).join(' ') || '',
+      },
+      metadata: {
+        user_id: userId,
+        verification_method: verificationMethod,
+        document_type: documentType,
+        webhook_url: webhookUrl
+      }
+    };
+
+    console.log('Creating Didit session with payload:', sessionPayload);
+
+    const apiResponse = await fetch(`${DIDIT_API_BASE_URL}/session/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${DIDIT_API_KEY}`,
+        'X-Api-Key': DIDIT_API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        method: verificationMethod,
-        document_type: documentType,
-        customer_user_id: userId,
-        redirect_url: redirectUrl,
-        webhook_config: {
-            url: webhookUrl,
-            action: "webhook" // To be passed in the webhook body
-        }
-      }),
+      body: JSON.stringify(sessionPayload),
     });
 
     if (!apiResponse.ok) {
-      const errorData = await apiResponse.json();
-      throw new Error(errorData.message || `Didit API error: ${apiResponse.status}`);
+      const errorData = await apiResponse.text();
+      console.error('Didit API error:', errorData);
+      throw new Error(`Didit API error: ${apiResponse.status} - ${errorData}`);
     }
 
     const diditSession = await apiResponse.json();
-    const { id: sessionId, client_url: clientUrl } = diditSession;
+    console.log('Didit session created:', diditSession);
 
+    const { session_id: sessionId, verification_url: clientUrl } = diditSession;
+
+    // Store the verification record in our database
     const { data: verification, error: dbError } = await supabaseClient
       .from('didit_verifications')
       .insert({
@@ -44,6 +66,7 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
         document_type: documentType,
         status: 'pending',
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        didit_response: diditSession,
       })
       .select().single();
 

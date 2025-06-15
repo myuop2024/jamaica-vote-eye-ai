@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Shield, Save, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Shield, Save, RefreshCw, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
 
 interface DiditConfig {
   verification_timeout: number;
@@ -20,6 +19,7 @@ interface DiditConfig {
   webhook_enabled: boolean;
   webhook_url?: string;
   api_environment: 'sandbox' | 'production';
+  workflow_id?: string;
 }
 
 export const DiditSettings: React.FC = () => {
@@ -31,7 +31,8 @@ export const DiditSettings: React.FC = () => {
     enabled_verification_methods: ['document', 'liveness'],
     document_types_allowed: ['passport', 'drivers_license', 'national_id', 'voters_id'],
     webhook_enabled: false,
-    api_environment: 'sandbox'
+    api_environment: 'sandbox',
+    workflow_id: ''
   });
   
   const [isSaving, setIsSaving] = useState(false);
@@ -86,7 +87,8 @@ export const DiditSettings: React.FC = () => {
           document_types_allowed: JSON.parse(configMap.document_types_allowed || '["passport", "drivers_license", "national_id", "voters_id"]'),
           webhook_enabled: configMap.webhook_enabled === 'true',
           webhook_url: configMap.webhook_url,
-          api_environment: configMap.api_environment || 'sandbox'
+          api_environment: configMap.api_environment || 'sandbox',
+          workflow_id: configMap.workflow_id || ''
         });
       }
     } catch (error) {
@@ -103,7 +105,6 @@ export const DiditSettings: React.FC = () => {
 
   const testDiditConnection = async () => {
     try {
-      // Test connection by calling a simple didit endpoint
       const { data, error } = await supabase.functions.invoke('didit-verification', {
         body: { action: 'test_connection' }
       });
@@ -127,7 +128,8 @@ export const DiditSettings: React.FC = () => {
         { key: 'document_types_allowed', value: JSON.stringify(config.document_types_allowed) },
         { key: 'webhook_enabled', value: config.webhook_enabled.toString() },
         { key: 'webhook_url', value: config.webhook_url || '' },
-        { key: 'api_environment', value: config.api_environment }
+        { key: 'api_environment', value: config.api_environment },
+        { key: 'workflow_id', value: config.workflow_id || '' }
       ];
 
       for (const entry of configEntries) {
@@ -233,6 +235,61 @@ export const DiditSettings: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Workflow Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Workflow Configuration
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open('https://business.didit.me', '_blank')}
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                Didit Console
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="workflow-id">Workflow ID</Label>
+              <Input
+                id="workflow-id"
+                placeholder="Enter your Didit workflow ID"
+                value={config.workflow_id}
+                onChange={(e) => setConfig(prev => ({
+                  ...prev,
+                  workflow_id: e.target.value
+                }))}
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                Create and configure workflows in the Didit Business Console
+              </p>
+            </div>
+            
+            <div>
+              <Label htmlFor="environment">API Environment</Label>
+              <Select
+                value={config.api_environment}
+                onValueChange={(value: 'sandbox' | 'production') => 
+                  setConfig(prev => ({ ...prev, api_environment: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+                  <SelectItem value="production">Production (Live)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-500 mt-1">
+                Current API endpoint: https://verification.didit.me/v2
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Verification Thresholds */}
         <Card>
           <CardHeader>
@@ -291,30 +348,12 @@ export const DiditSettings: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* API Configuration */}
+        {/* Webhook Configuration */}
         <Card>
           <CardHeader>
-            <CardTitle>API Configuration</CardTitle>
+            <CardTitle>Webhook Configuration</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="environment">API Environment</Label>
-              <Select
-                value={config.api_environment}
-                onValueChange={(value: 'sandbox' | 'production') => 
-                  setConfig(prev => ({ ...prev, api_environment: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sandbox">Sandbox</SelectItem>
-                  <SelectItem value="production">Production</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="webhook">Enable Webhooks</Label>
@@ -343,6 +382,9 @@ export const DiditSettings: React.FC = () => {
                     webhook_url: e.target.value
                   }))}
                 />
+                <p className="text-sm text-gray-500 mt-1">
+                  Default: {window.location.origin}/functions/v1/didit-verification
+                </p>
               </div>
             )}
           </CardContent>
