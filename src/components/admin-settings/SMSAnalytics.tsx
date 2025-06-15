@@ -28,6 +28,7 @@ interface SMSLog {
   error_message?: string;
   communication_id: string;
   campaign_name?: string;
+  created_at: string;
 }
 
 interface SMSStats {
