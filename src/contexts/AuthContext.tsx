@@ -20,8 +20,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('AuthProvider: Setting up auth state listener');
+    
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('AuthProvider: Initial session check', { session: !!session, error });
+      if (error) {
+        console.error('Error getting initial session:', error);
+        setIsLoading(false);
+        return;
+      }
+      
       if (session?.user) {
         fetchUserProfile(session.user.id);
       } else {
@@ -33,6 +42,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('AuthProvider: Auth state change', { event, session: !!session });
+      
       if (session?.user) {
         await fetchUserProfile(session.user.id);
       } else {
@@ -45,6 +56,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
+    console.log('AuthProvider: Fetching profile for user', userId);
+    
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -52,18 +65,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
+      console.log('AuthProvider: Profile fetch result', { profile: !!profile, error });
+
       if (error) {
         console.error('Error fetching profile:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load user profile",
-          variant: "destructive"
-        });
+        
+        // If profile doesn't exist, that's not necessarily an error for login
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found - user may need to complete signup');
+          toast({
+            title: "Profile Setup Required",
+            description: "Please complete your profile setup",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load user profile",
+            variant: "destructive"
+          });
+        }
         setIsLoading(false);
         return;
       }
 
       if (profile) {
+        console.log('AuthProvider: Setting user profile', profile);
         const userProfile: User = {
           id: profile.id,
           email: profile.email,
@@ -93,11 +120,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         variant: "destructive"
       });
     } finally {
+      console.log('AuthProvider: Setting loading to false');
       setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
+    console.log('AuthProvider: Starting login for', email);
     setIsLoading(true);
     
     try {
@@ -106,11 +135,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
+      console.log('AuthProvider: Login result', { user: !!data.user, error });
+
       if (error) {
+        console.error('Login error:', error);
         throw error;
       }
 
       if (data.user) {
+        console.log('AuthProvider: Login successful');
         toast({
           title: "Success",
           description: "Login successful"
@@ -123,10 +156,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: error.message || "Invalid credentials",
         variant: "destructive"
       });
+      setIsLoading(false); // Reset loading state on error
       throw error;
-    } finally {
-      setIsLoading(false);
     }
+    // Note: Don't set loading to false here, let the auth state change handler do it
   };
 
   const logout = async () => {

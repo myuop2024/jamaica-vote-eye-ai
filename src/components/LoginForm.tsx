@@ -15,21 +15,39 @@ export const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, isLoading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, isLoading, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Redirect if user is already logged in
+  React.useEffect(() => {
+    if (user && !isLoading) {
+      console.log('LoginForm: User is logged in, redirecting to dashboard');
+      navigate('/dashboard');
+    }
+  }, [user, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
+
+    console.log('LoginForm: Attempting login for', email);
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      // Don't navigate here - let the useEffect handle it when user state updates
     } catch (err: any) {
+      console.error('LoginForm: Login failed', err);
       setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // Show loading state while auth is initializing or submitting
+  const showLoadingState = isLoading || isSubmitting;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-yellow-50 to-black/5 p-4">
@@ -74,6 +92,7 @@ export const LoginForm: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                disabled={showLoadingState}
                 className="h-12"
               />
             </div>
@@ -88,6 +107,7 @@ export const LoginForm: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
+                  disabled={showLoadingState}
                   className="h-12 pr-12"
                 />
                 <Button
@@ -96,6 +116,7 @@ export const LoginForm: React.FC = () => {
                   size="sm"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={showLoadingState}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
@@ -104,10 +125,10 @@ export const LoginForm: React.FC = () => {
             
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={showLoadingState}
               className="w-full h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold"
             >
-              {isLoading ? (
+              {showLoadingState ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Signing In...
@@ -121,7 +142,8 @@ export const LoginForm: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/signup')}
-                className="text-sm text-green-600 hover:text-green-800 underline"
+                disabled={showLoadingState}
+                className="text-sm text-green-600 hover:text-green-800 underline disabled:opacity-50"
               >
                 Don't have an account? Sign up
               </button>
