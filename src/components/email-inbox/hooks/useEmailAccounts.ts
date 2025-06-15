@@ -54,31 +54,30 @@ export const useEmailAccounts = () => {
         throw new Error('User not authenticated');
       }
 
-      // Use the hardcoded client ID that should match your Google Cloud Console setup
-      const clientId = '367771538830-8u6rjgvl06ihvam6kvkue9fvi7h7jthl.apps.googleusercontent.com';
-      const redirectUri = `${window.location.origin}/auth/gmail/callback`;
-      const scope = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email';
-      
-      console.log('Gmail OAuth configuration:', {
-        clientId,
-        redirectUri,
-        scope
-      });
-      
-      const oauthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      oauthUrl.searchParams.set('client_id', clientId);
-      oauthUrl.searchParams.set('redirect_uri', redirectUri);
-      oauthUrl.searchParams.set('response_type', 'code');
-      oauthUrl.searchParams.set('scope', scope);
-      oauthUrl.searchParams.set('access_type', 'offline');
-      oauthUrl.searchParams.set('prompt', 'consent');
-      oauthUrl.searchParams.set('state', user.id);
+      console.log('Starting Gmail OAuth flow for user:', user.id);
 
-      console.log('Opening OAuth URL:', oauthUrl.toString());
+      // Call the edge function to initiate OAuth
+      const { data, error } = await supabase.functions.invoke('gmail-oauth-exchange', {
+        body: {
+          action: 'initiate',
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('OAuth initiation error:', error);
+        throw new Error(error.message || 'Failed to initiate Gmail OAuth');
+      }
+
+      if (!data?.authUrl) {
+        throw new Error('No OAuth URL received from server');
+      }
+
+      console.log('Opening OAuth URL:', data.authUrl);
 
       // Open OAuth popup
       const popup = window.open(
-        oauthUrl.toString(),
+        data.authUrl,
         'gmail-oauth',
         'width=500,height=600,scrollbars=yes,resizable=yes'
       );
@@ -129,7 +128,11 @@ export const useEmailAccounts = () => {
 
     } catch (error: any) {
       console.error('Error connecting Gmail:', error);
-      throw error;
+      toast({
+        title: "Error",
+        description: error.message || "Failed to connect Gmail account",
+        variant: "destructive"
+      });
     }
   };
 
@@ -149,9 +152,18 @@ export const useEmailAccounts = () => {
       
       // Refresh the accounts list
       await fetchAccounts();
+      
+      toast({
+        title: "Success",
+        description: "Email account removed successfully"
+      });
     } catch (error: any) {
       console.error('Error removing account:', error);
-      throw error;
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove account",
+        variant: "destructive"
+      });
     }
   };
 
