@@ -1,48 +1,48 @@
 
 import React from 'react';
-import { DiditSettings } from './DiditSettings';
-import { TwilioSettings } from './TwilioSettings';
-import { SMSAnalytics } from './SMSAnalytics';
-import { SystemSettings } from '../SystemSettings';
-import { NotificationSettings } from './NotificationSettings';
-import { CommunicationsSettings } from './CommunicationsSettings';
-import { EmailInbox } from '../email-inbox/EmailInbox';
-import { SecuritySettings } from './SecuritySettings';
-import { DataSettings } from './DataSettings';
 import { UserSettings } from './UserSettings';
-import { SettingsSection } from './useSettingsNavigation';
+import { SecuritySettings } from './SecuritySettings';
+import { CommunicationsSettings } from './CommunicationsSettings';
+import { NotificationSettings } from './NotificationSettings';
+import { DataSettings } from './DataSettings';
+import { TwilioSettings } from './TwilioSettings';
+import { DiditSettings } from './DiditSettings';
+import { SMSAnalytics } from './SMSAnalytics';
+import { HereMapsSettings } from './HereMapsSettings';
 
 interface SettingsContentProps {
-  activeSection: SettingsSection;
+  activeSection: string;
 }
 
 export const SettingsContent: React.FC<SettingsContentProps> = ({ activeSection }) => {
   const renderContent = () => {
     switch (activeSection) {
-      case 'general':
-        return <SystemSettings />;
-      case 'didit':
-        return <DiditSettings />;
-      case 'twilio':
-        return <TwilioSettings />;
-      case 'sms-analytics':
-        return <SMSAnalytics />;
-      case 'notifications':
-        return <NotificationSettings />;
-      case 'communications':
-        return <CommunicationsSettings />;
-      case 'email-inbox':
-        return <EmailInbox />;
-      case 'security':
-        return <SecuritySettings />;
-      case 'data':
-        return <DataSettings />;
       case 'users':
         return <UserSettings />;
+      case 'security':
+        return <SecuritySettings />;
+      case 'communications':
+        return <CommunicationsSettings />;
+      case 'notifications':
+        return <NotificationSettings />;
+      case 'data':
+        return <DataSettings />;
+      case 'twilio':
+        return <TwilioSettings />;
+      case 'didit':
+        return <DiditSettings />;
+      case 'sms-analytics':
+        return <SMSAnalytics />;
+      case 'here-maps':
+        return <HereMapsSettings />;
       default:
-        return <SystemSettings />;
+        return <UserSettings />;
     }
   };
 
-  return renderContent();
+  return (
+    <div className="flex-1 p-6">
+      {renderContent()}
+    </div>
+  );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { AddressInput } from '@/components/address/AddressInput';
+import { JAMAICAN_PARISHES } from '@/services/hereMapsService';
 
 interface UserProfile {
   id: string;
@@ -34,23 +35,6 @@ interface UserEditDialogProps {
   onClose: () => void;
   onUpdateStatus: (userId: string, status: 'pending' | 'verified' | 'rejected') => void;
 }
-
-const JAMAICAN_PARISHES = [
-  'Clarendon',
-  'Hanover',
-  'Kingston',
-  'Manchester',
-  'Portland',
-  'Saint Andrew',
-  'Saint Ann',
-  'Saint Catherine',
-  'Saint Elizabeth',
-  'Saint James',
-  'Saint Mary',
-  'Saint Thomas',
-  'Trelawny',
-  'Westmoreland'
-];
 
 export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   user,
@@ -101,6 +85,24 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
       return 'TRN must be 9 digits';
     }
     return null;
+  };
+
+  const handleAddressChange = (address: string, coordinates?: { lat: number; lng: number }) => {
+    setFormData(prev => ({ ...prev, address }));
+    if (error) setError(null);
+  };
+
+  const handleAddressSelect = (addressData: any) => {
+    // Auto-fill parish if it can be determined from the address
+    if (addressData.address?.state && JAMAICAN_PARISHES.includes(addressData.address.state)) {
+      setFormData(prev => ({ 
+        ...prev, 
+        address: addressData.address.label,
+        parish: addressData.address.state 
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, address: addressData.address.label }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -240,16 +242,15 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                disabled={isLoading}
-                placeholder="Full address"
-              />
-            </div>
+            <AddressInput
+              label="Address"
+              value={formData.address}
+              onChange={handleAddressChange}
+              onAddressSelect={handleAddressSelect}
+              disabled={isLoading}
+              placeholder="Enter full address in Jamaica"
+              showCoordinates={false}
+            />
           </div>
 
           {/* Banking Information */}
