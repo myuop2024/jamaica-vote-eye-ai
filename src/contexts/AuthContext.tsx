@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user.id, session.user.email || '');
       } else {
         setIsLoading(false);
       }
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Auth state change', { event, session: !!session });
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id);
+        await fetchUserProfile(session.user.id, session.user.email || '');
       } else {
         setUser(null);
         setIsLoading(false);
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, email: string) => {
     console.log('AuthProvider: Fetching profile for user', userId);
     
     try {
@@ -70,9 +70,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Error fetching profile:', error);
         
-        // If profile doesn't exist, that's not necessarily an error for login
+        // If profile doesn't exist, create a basic user object from auth data
         if (error.code === 'PGRST116') {
-          console.log('Profile not found - user may need to complete signup');
+          console.log('Profile not found - creating basic user object from auth data');
+          const basicUser: User = {
+            id: userId,
+            email: email,
+            name: email.split('@')[0], // Use email prefix as temporary name
+            role: 'observer' as const,
+            verificationStatus: 'pending' as const,
+            createdAt: new Date().toISOString()
+          };
+          
+          setUser(basicUser);
           toast({
             title: "Profile Setup Required",
             description: "Please complete your profile setup",
