@@ -1,8 +1,10 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { TwilioSettings, TestResult, ConnectionStatus } from './types';
+import { loadTwilioSettings, saveTwilioSettings } from './twilioConfigOperations';
+import { testTwilioConnection, sendTestSMS } from './twilioTestOperations';
+import { createToastMessage } from './twilioNotifications';
 
 export const useTwilioSettings = () => {
   const { toast } = useToast();
@@ -22,57 +24,21 @@ export const useTwilioSettings = () => {
 
   const [testResult, setTestResult] = useState<TestResult | null>(null);
 
-  const loadTwilioSettings = async () => {
+  const loadSettings = async () => {
     try {
       setIsLoading(true);
       
-      const { data: configData, error } = await supabase
-        .from('didit_configuration')
-        .select('setting_key, setting_value, is_active')
-        .in('setting_key', ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER', 'TWILIO_ENABLED']);
+      const loadedSettings = await loadTwilioSettings();
+      setSettings(prev => ({ ...prev, ...loadedSettings }));
 
-      if (error) {
-        console.error('Error loading Twilio settings:', error);
-        return;
-      }
-
-      if (configData && configData.length > 0) {
-        const config = configData.reduce((acc, item) => {
-          // Safely extract the value from the Json type
-          let value: any;
-          if (typeof item.setting_value === 'object' && item.setting_value !== null && 'value' in item.setting_value) {
-            value = (item.setting_value as any).value;
-          } else {
-            value = item.setting_value;
-          }
-          acc[item.setting_key] = value;
-          return acc;
-        }, {} as Record<string, any>);
-
-        setSettings(prev => ({
-          ...prev,
-          accountSid: config.TWILIO_ACCOUNT_SID || '',
-          authToken: config.TWILIO_AUTH_TOKEN || '',
-          fromNumber: config.TWILIO_FROM_NUMBER || '',
-          enabled: config.TWILIO_ENABLED !== false
-        }));
-
-        if (config.TWILIO_ACCOUNT_SID && config.TWILIO_AUTH_TOKEN) {
-          setConnectionStatus('unknown');
-        }
+      if (loadedSettings.accountSid && loadedSettings.authToken) {
+        setConnectionStatus('unknown');
       }
       
-      toast({
-        title: "Settings Loaded",
-        description: "Twilio configuration loaded successfully"
-      });
+      toast(createToastMessage.settingsLoaded());
     } catch (error: any) {
       console.error('Error loading Twilio settings:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load Twilio settings",
-        variant: "destructive"
-      });
+      toast(createToastMessage.loadError(error.message));
     } finally {
       setIsLoading(false);
     }
@@ -82,43 +48,17 @@ export const useTwilioSettings = () => {
     try {
       setIsSaving(true);
       
-      if (!settings.accountSid || !settings.authToken || !settings.fromNumber) {
-        toast({
-          title: "Validation Error",
-          description: "Account SID, Auth Token, and From Number are required",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('save-twilio-settings', {
-        body: {
-          accountSid: settings.accountSid,
-          authToken: settings.authToken,
-          fromNumber: settings.fromNumber,
-          enabled: settings.enabled
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast({
-          title: "Settings Saved",
-          description: "Twilio configuration has been updated successfully"
-        });
-        setConnectionStatus('unknown');
-      } else {
-        throw new Error(data.message || 'Failed to save settings');
-      }
+      await saveTwilioSettings(settings);
+      toast(createToastMessage.settingsSaved());
+      setConnectionStatus('unknown');
       
     } catch (error: any) {
       console.error('Error saving Twilio settings:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save Twilio settings",
-        variant: "destructive"
-      });
+      if (error.message.includes('required')) {
+        toast(createToastMessage.validationError());
+      } else {
+        toast(createToastMessage.saveError(error.message));
+      }
     } finally {
       setIsSaving(false);
     }
@@ -129,38 +69,13 @@ export const useTwilioSettings = () => {
       setIsTesting(true);
       setTestResult(null);
 
-      if (!settings.accountSid || !settings.authToken) {
-        setTestResult({
-          success: false,
-          message: "Account SID and Auth Token are required for testing"
-        });
-        return;
-      }
+      const result = await testTwilioConnection(settings.accountSid, settings.authToken, settings.fromNumber);
+      setTestResult(result);
 
-      const { data, error } = await supabase.functions.invoke('test-twilio-connection', {
-        body: {
-          accountSid: settings.accountSid,
-          authToken: settings.authToken,
-          fromNumber: settings.fromNumber
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
+      if (result.success) {
         setConnectionStatus('connected');
-        setTestResult({
-          success: true,
-          message: "Connection successful! Twilio is properly configured.",
-          details: data.details
-        });
       } else {
         setConnectionStatus('error');
-        setTestResult({
-          success: false,
-          message: data.message || "Connection failed",
-          details: data.details
-        });
       }
 
     } catch (error: any) {
@@ -175,64 +90,36 @@ export const useTwilioSettings = () => {
     }
   };
 
-  const sendTestSMS = async () => {
+  const handleSendTestSMS = async () => {
     try {
       setIsTesting(true);
       
       if (!settings.fromNumber) {
-        toast({
-          title: "Error",
-          description: "From Number is required to send test SMS",
-          variant: "destructive"
-        });
+        toast(createToastMessage.fromNumberRequired());
         return;
       }
 
       if (connectionStatus !== 'connected') {
-        toast({
-          title: "Info",
-          description: "Please save your settings and test the connection first",
-          variant: "default"
-        });
+        toast(createToastMessage.testConnectionFirst());
         return;
       }
 
       const testNumber = prompt('Enter a test phone number (with country code, e.g., +1234567890):');
       if (!testNumber) return;
       
-      const { data, error } = await supabase.functions.invoke('send-sms', {
-        body: {
-          to: testNumber,
-          message: 'Test SMS from Electoral Observation System - Twilio integration working!',
-          campaignId: 'test'
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        toast({
-          title: "Test SMS Sent",
-          description: `Test message sent successfully to ${testNumber}`,
-        });
-      } else {
-        throw new Error(data.error || 'Failed to send test SMS');
-      }
+      await sendTestSMS(settings.fromNumber, testNumber);
+      toast(createToastMessage.testSMSSent(testNumber));
 
     } catch (error: any) {
       console.error('Error sending test SMS:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send test SMS. Make sure your settings are saved and connection is tested first.",
-        variant: "destructive"
-      });
+      toast(createToastMessage.testSMSError(error.message));
     } finally {
       setIsTesting(false);
     }
   };
 
   useEffect(() => {
-    loadTwilioSettings();
+    loadSettings();
   }, []);
 
   return {
@@ -245,6 +132,6 @@ export const useTwilioSettings = () => {
     testResult,
     saveSettings,
     testConnection,
-    sendTestSMS
+    sendTestSMS: handleSendTestSMS
   };
 };
