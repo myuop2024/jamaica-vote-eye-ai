@@ -30,10 +30,10 @@ const DEFAULT_SETTINGS: CommunicationsSettings = {
   smtpUsername: '',
   smtpPassword: '',
   smtpTls: true,
-  registrationEmailTemplate: 'Welcome to the Electoral Observation System! Please verify your email address by clicking the link below.',
-  passwordResetEmailTemplate: 'Click the link below to reset your password. This link will expire in 24 hours.',
-  welcomeSmsTemplate: 'Welcome to the Electoral Observation System! Your account has been created successfully.',
-  verificationSmsTemplate: 'Your verification code is: {code}. Please enter this code to verify your phone number.',
+  registrationEmailTemplate: 'Welcome! Please verify your email address by clicking the link below.',
+  passwordResetEmailTemplate: 'Click the link below to reset your password. If you did not request this, please ignore this email.',
+  welcomeSmsTemplate: 'Welcome to the Electoral Observation System! Your account has been activated.',
+  verificationSmsTemplate: 'Your verification code is: {code}',
   emailRateLimit: 100,
   smsRateLimit: 50,
   dailyEmailLimit: 1000,
@@ -125,13 +125,13 @@ export const useCommunicationsSettings = () => {
         {
           setting_key: 'COMM_EMAIL_ENABLED',
           setting_value: { value: settings.emailEnabled },
-          description: 'Enable email communications',
+          description: 'Email service enabled status',
           is_active: true
         },
         {
           setting_key: 'COMM_EMAIL_PROVIDER',
           setting_value: { value: settings.emailProvider },
-          description: 'Email provider type',
+          description: 'Email service provider',
           is_active: true
         },
         {
@@ -161,7 +161,7 @@ export const useCommunicationsSettings = () => {
         {
           setting_key: 'COMM_SMTP_TLS',
           setting_value: { value: settings.smtpTls },
-          description: 'SMTP TLS encryption',
+          description: 'SMTP TLS/SSL enabled',
           is_active: true
         },
         {
@@ -185,7 +185,7 @@ export const useCommunicationsSettings = () => {
         {
           setting_key: 'COMM_VERIFICATION_SMS_TEMPLATE',
           setting_value: { value: settings.verificationSmsTemplate },
-          description: 'Phone verification SMS template',
+          description: 'Verification SMS template',
           is_active: true
         },
         {
@@ -215,7 +215,7 @@ export const useCommunicationsSettings = () => {
         {
           setting_key: 'COMM_ENABLE_ANTI_SPAM',
           setting_value: { value: settings.enableAntiSpam },
-          description: 'Enable anti-spam protection',
+          description: 'Anti-spam protection enabled',
           is_active: true
         }
       ];

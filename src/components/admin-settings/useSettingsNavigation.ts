@@ -12,11 +12,11 @@ export type SettingsSection =
   | 'data'
   | 'users';
 
-export const useSettingsNavigation = (initialSection: SettingsSection = 'general') => {
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+export const useSettingsNavigation = () => {
+  const [activeSection, setActiveSection] = useState<SettingsSection>('general');
 
   return {
     activeSection,
-    setActiveSection,
+    setActiveSection
   };
 };

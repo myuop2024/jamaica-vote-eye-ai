@@ -110,13 +110,13 @@ export const useDataSettings = () => {
         {
           setting_key: 'DATA_ENABLE_AUTO_BACKUP',
           setting_value: { value: settings.enableAutoBackup },
-          description: 'Enable automatic data backups',
+          description: 'Enable automatic backups',
           is_active: true
         },
         {
           setting_key: 'DATA_BACKUP_FREQUENCY',
           setting_value: { value: settings.backupFrequency },
-          description: 'Backup frequency schedule',
+          description: 'Backup frequency',
           is_active: true
         },
         {
@@ -128,25 +128,25 @@ export const useDataSettings = () => {
         {
           setting_key: 'DATA_BACKUP_TIME',
           setting_value: { value: settings.backupTime },
-          description: 'Daily backup time',
+          description: 'Backup time',
           is_active: true
         },
         {
           setting_key: 'DATA_LOG_RETENTION_DAYS',
           setting_value: { value: settings.logRetentionDays },
-          description: 'System logs retention period in days',
+          description: 'Log retention period in days',
           is_active: true
         },
         {
           setting_key: 'DATA_REPORT_RETENTION_DAYS',
           setting_value: { value: settings.reportRetentionDays },
-          description: 'Reports retention period in days',
+          description: 'Report retention period in days',
           is_active: true
         },
         {
           setting_key: 'DATA_USER_RETENTION_DAYS',
           setting_value: { value: settings.userRetentionDays },
-          description: 'Inactive user data retention period in days',
+          description: 'User data retention period in days',
           is_active: true
         },
         {
@@ -158,19 +158,19 @@ export const useDataSettings = () => {
         {
           setting_key: 'DATA_DEFAULT_EXPORT_FORMAT',
           setting_value: { value: settings.defaultExportFormat },
-          description: 'Default data export format',
+          description: 'Default export format',
           is_active: true
         },
         {
           setting_key: 'DATA_INCLUDE_METADATA',
           setting_value: { value: settings.includeMetadata },
-          description: 'Include metadata in data exports',
+          description: 'Include metadata in exports',
           is_active: true
         },
         {
           setting_key: 'DATA_ANONYMIZE_DATA',
           setting_value: { value: settings.anonymizeData },
-          description: 'Anonymize personal data in exports',
+          description: 'Anonymize data in exports',
           is_active: true
         }
       ];
@@ -187,7 +187,7 @@ export const useDataSettings = () => {
 
       toast({
         title: "Settings Saved",
-        description: "Data management settings have been updated successfully"
+        description: "Data settings have been updated successfully"
       });
 
     } catch (error: any) {
@@ -206,17 +206,16 @@ export const useDataSettings = () => {
     try {
       toast({
         title: "Export Started",
-        description: "Data export is being prepared. This may take a few minutes."
+        description: "Data export has been initiated"
       });
       
-      // TODO: Implement data export functionality
-      console.log('Starting data export with format:', settings.defaultExportFormat);
-      
+      // This would typically trigger a background job
+      console.log('Exporting data with format:', settings.defaultExportFormat);
     } catch (error: any) {
       console.error('Error exporting data:', error);
       toast({
-        title: "Export Failed",
-        description: error.message || "Failed to export data",
+        title: "Error",
+        description: "Failed to export data",
         variant: "destructive"
       });
     }
@@ -226,21 +225,16 @@ export const useDataSettings = () => {
     try {
       toast({
         title: "Cleanup Started",
-        description: "Old data cleanup is being processed. This may take a few minutes."
+        description: "Old data cleanup has been initiated"
       });
       
-      // TODO: Implement data cleanup functionality
-      console.log('Starting data cleanup with retention policies:', {
-        logs: settings.logRetentionDays,
-        reports: settings.reportRetentionDays,
-        users: settings.userRetentionDays
-      });
-      
+      // This would typically trigger a background job
+      console.log('Cleaning up old data');
     } catch (error: any) {
       console.error('Error cleaning up data:', error);
       toast({
-        title: "Cleanup Failed",
-        description: error.message || "Failed to cleanup old data",
+        title: "Error",
+        description: "Failed to cleanup old data",
         variant: "destructive"
       });
     }
