@@ -47,7 +47,8 @@ export const HereMapsSettings: React.FC = () => {
         console.error('Error loading HERE Maps config:', error);
         setError(error.message);
       } else if (data?.value) {
-        const savedConfig = data.value as HereMapsConfig;
+        // Safely convert the Json value to HereMapsConfig
+        const savedConfig = data.value as unknown as HereMapsConfig;
         setConfig(savedConfig);
         
         // Initialize service if API key exists
