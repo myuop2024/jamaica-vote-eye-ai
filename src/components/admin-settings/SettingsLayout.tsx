@@ -1,42 +1,12 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
-import { DiditSettings } from './DiditSettings';
-import { TwilioSettings } from './TwilioSettings';
-import { SMSAnalytics } from './SMSAnalytics';
-import { SystemSettings } from '../SystemSettings';
+import { SettingsContent } from './SettingsContent';
+import { useSettingsNavigation } from './useSettingsNavigation';
 
 export const SettingsLayout: React.FC = () => {
-  const [activeSection, setActiveSection] = useState('general');
-
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'general':
-        return <SystemSettings />;
-      case 'didit':
-        return <DiditSettings />;
-      case 'twilio':
-        return <TwilioSettings />;
-      case 'sms-analytics':
-        return <SMSAnalytics />;
-      case 'notifications':
-      case 'communications':
-      case 'security':
-      case 'data':
-      case 'users':
-        return (
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} Settings
-            </h2>
-            <p className="text-gray-600">This section is coming soon...</p>
-          </div>
-        );
-      default:
-        return <SystemSettings />;
-    }
-  };
+  const { activeSection, setActiveSection } = useSettingsNavigation();
 
   return (
     <SidebarProvider>
@@ -47,7 +17,7 @@ export const SettingsLayout: React.FC = () => {
         />
         <SidebarInset className="flex-1">
           <div className="p-6">
-            {renderContent()}
+            <SettingsContent activeSection={activeSection} />
           </div>
         </SidebarInset>
       </div>

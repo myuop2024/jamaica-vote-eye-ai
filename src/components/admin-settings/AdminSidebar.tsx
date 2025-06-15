@@ -13,63 +13,64 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Settings, Shield, Database, Bell, Mail, Users, Key, Phone, BarChart3 } from 'lucide-react';
+import { SettingsSection } from './useSettingsNavigation';
 
 interface AdminSidebarProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
+  activeSection: SettingsSection;
+  onSectionChange: (section: SettingsSection) => void;
 }
 
 const settingsSections = [
   {
-    id: 'general',
+    id: 'general' as const,
     label: 'General Settings',
     icon: Settings,
     description: 'System configuration and preferences'
   },
   {
-    id: 'didit',
+    id: 'didit' as const,
     label: 'Didit Verification',
     icon: Shield,
     description: 'Identity verification settings'
   },
   {
-    id: 'twilio',
+    id: 'twilio' as const,
     label: 'Twilio SMS',
     icon: Phone,
     description: 'SMS service configuration'
   },
   {
-    id: 'sms-analytics',
+    id: 'sms-analytics' as const,
     label: 'SMS Analytics',
     icon: BarChart3,
     description: 'SMS logs and statistics'
   },
   {
-    id: 'notifications',
+    id: 'notifications' as const,
     label: 'Notifications',
     icon: Bell,
     description: 'Email and SMS notification settings'
   },
   {
-    id: 'communications',
+    id: 'communications' as const,
     label: 'Communications',
     icon: Mail,
     description: 'Email and SMS provider settings'
   },
   {
-    id: 'security',
+    id: 'security' as const,
     label: 'Security',
     icon: Key,
     description: 'Authentication and security settings'
   },
   {
-    id: 'data',
+    id: 'data' as const,
     label: 'Data Management',
     icon: Database,
     description: 'Backup and data retention settings'
   },
   {
-    id: 'users',
+    id: 'users' as const,
     label: 'User Settings',
     icon: Users,
     description: 'Default user preferences'
