@@ -25,61 +25,61 @@ const settingsSections = [
     id: 'general' as const,
     label: 'General Settings',
     icon: Settings,
-    description: 'System configuration and preferences'
+    description: 'System configuration'
   },
   {
     id: 'didit' as const,
     label: 'Didit Verification',
     icon: Shield,
-    description: 'Identity verification settings'
+    description: 'Identity verification'
   },
   {
     id: 'twilio' as const,
     label: 'Twilio SMS',
     icon: Phone,
-    description: 'SMS service configuration'
+    description: 'SMS service config'
   },
   {
     id: 'sms-analytics' as const,
     label: 'SMS Analytics',
     icon: BarChart3,
-    description: 'SMS logs and statistics'
+    description: 'SMS logs & stats'
   },
   {
     id: 'notifications' as const,
     label: 'Notifications',
     icon: Bell,
-    description: 'Email and SMS notification settings'
+    description: 'Email & SMS alerts'
   },
   {
     id: 'communications' as const,
     label: 'Communications',
     icon: Mail,
-    description: 'Email and SMS provider settings'
+    description: 'Provider settings'
   },
   {
     id: 'email-inbox' as const,
     label: 'Email Inbox',
     icon: Inbox,
-    description: 'Manage email accounts and messages'
+    description: 'Email management'
   },
   {
     id: 'security' as const,
     label: 'Security',
     icon: Key,
-    description: 'Authentication and security settings'
+    description: 'Auth & security'
   },
   {
     id: 'data' as const,
     label: 'Data Management',
     icon: Database,
-    description: 'Backup and data retention settings'
+    description: 'Backup & retention'
   },
   {
     id: 'users' as const,
     label: 'User Settings',
     icon: Users,
-    description: 'Default user preferences'
+    description: 'User preferences'
   }
 ];
 
@@ -88,31 +88,49 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onSectionChange
 }) => {
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <Settings className="w-5 h-5" />
-          System Settings
-        </h2>
-        <p className="text-sm text-gray-600">Configure system preferences</p>
+    <Sidebar className="border-r">
+      <SidebarHeader className="border-b p-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-green-600 to-yellow-500 rounded-lg flex items-center justify-center">
+            <Settings className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">System Settings</h2>
+            <p className="text-sm text-gray-600">Configure preferences</p>
+          </div>
+        </div>
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="p-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-medium text-gray-500 uppercase tracking-wider px-2 py-2">
+            Configuration
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {settingsSections.map((section) => (
                 <SidebarMenuItem key={section.id}>
                   <SidebarMenuButton
                     isActive={activeSection === section.id}
                     onClick={() => onSectionChange(section.id)}
-                    className="w-full justify-start"
+                    className={`w-full p-3 rounded-lg transition-all duration-200 ${
+                      activeSection === section.id
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'hover:bg-gray-50 text-gray-700'
+                    }`}
                   >
-                    <section.icon className="w-4 h-4" />
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">{section.label}</span>
-                      <span className="text-xs text-gray-500">{section.description}</span>
+                    <div className="flex items-center gap-3 w-full">
+                      <section.icon className={`w-4 h-4 flex-shrink-0 ${
+                        activeSection === section.id ? 'text-green-600' : 'text-gray-500'
+                      }`} />
+                      <div className="flex flex-col items-start min-w-0 flex-1">
+                        <span className="font-medium text-sm truncate w-full text-left">
+                          {section.label}
+                        </span>
+                        <span className="text-xs text-gray-500 truncate w-full text-left">
+                          {section.description}
+                        </span>
+                      </div>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -122,9 +140,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <div className="text-xs text-gray-500">
-          <p>Settings are automatically saved</p>
+      <SidebarFooter className="border-t p-4">
+        <div className="text-xs text-gray-500 space-y-1">
+          <p className="font-medium">Auto-save enabled</p>
           <p>Last updated: {new Date().toLocaleDateString()}</p>
         </div>
       </SidebarFooter>
