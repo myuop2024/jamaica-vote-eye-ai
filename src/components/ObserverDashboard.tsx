@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { MapPin, FileText, CheckCircle, Phone, MessageSquare, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { VerificationPrompt } from '@/components/VerificationPrompt';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export const ObserverDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -15,6 +17,15 @@ export const ObserverDashboard: React.FC = () => {
   const [reportText, setReportText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    phoneNumber: user?.phoneNumber || '',
+    assignedStation: user?.assignedStation || '',
+    // Add more fields as needed
+  });
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Show verification prompt for unverified observers on mount
   useEffect(() => {
@@ -27,6 +38,16 @@ export const ObserverDashboard: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        phoneNumber: user.phoneNumber || '',
+        assignedStation: user.assignedStation || '',
+      });
+    }
+  }, [user, showProfileEdit]);
 
   const handleReportSubmit = async () => {
     if (!reportText.trim()) {
@@ -48,6 +69,39 @@ export const ObserverDashboard: React.FC = () => {
     
     setReportText('');
     setIsSubmitting(false);
+  };
+
+  const handleProfileInput = (field: string, value: string) => {
+    setProfileForm((prev) => ({ ...prev, [field]: value }));
+    if (profileError) setProfileError(null);
+  };
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setProfileLoading(true);
+    setProfileError(null);
+    try {
+      const { error } = await window.supabase
+        .from('profiles')
+        .update({
+          name: profileForm.name.trim(),
+          phone_number: profileForm.phoneNumber.trim() || null,
+          assigned_station: profileForm.assignedStation.trim() || null,
+        })
+        .eq('id', user.id);
+      if (error) throw error;
+      toast({ title: 'Profile Updated', description: 'Your profile was updated successfully.' });
+      setShowProfileEdit(false);
+      // Refresh user context
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.reload(); // Quick way to refresh context; ideally call fetchUserProfile
+      }
+    } catch (err: any) {
+      setProfileError(err.message || 'Failed to update profile');
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
   return (
@@ -91,6 +145,87 @@ export const ObserverDashboard: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile & Status */}
           <div className="lg:col-span-1 space-y-6">
+            {/* My Profile Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold flex justify-between items-center">
+                  My Profile
+                  <Button size="sm" variant="outline" onClick={() => setShowProfileEdit(true)}>
+                    Edit
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div>
+                  <span className="text-sm text-gray-600">Name</span>
+                  <div className="font-medium">{user?.name}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">Email</span>
+                  <div className="text-sm">{user?.email}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">Phone</span>
+                  <div className="text-sm">{user?.phoneNumber || <span className="text-gray-400">Not set</span>}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">Assigned Station</span>
+                  <div className="text-sm">{user?.assignedStation || <span className="text-gray-400">Not set</span>}</div>
+                </div>
+              </CardContent>
+            </Card>
+            {/* Profile Edit Modal */}
+            <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit}>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Edit My Profile</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleProfileSubmit} className="space-y-4">
+                  {profileError && (
+                    <div className="text-red-600 text-sm">{profileError}</div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-name">Name</Label>
+                    <Input
+                      id="profile-name"
+                      value={profileForm.name}
+                      onChange={(e) => handleProfileInput('name', e.target.value)}
+                      disabled={profileLoading}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-phone">Phone Number</Label>
+                    <Input
+                      id="profile-phone"
+                      value={profileForm.phoneNumber}
+                      onChange={(e) => handleProfileInput('phoneNumber', e.target.value)}
+                      disabled={profileLoading}
+                      placeholder="+1 876-XXX-XXXX"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-station">Assigned Station</Label>
+                    <Input
+                      id="profile-station"
+                      value={profileForm.assignedStation}
+                      onChange={(e) => handleProfileInput('assignedStation', e.target.value)}
+                      disabled={profileLoading}
+                      placeholder="Station name or code"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setShowProfileEdit(false)} disabled={profileLoading}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={profileLoading}>
+                      {profileLoading ? 'Updating...' : 'Update Profile'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">Verification Status</CardTitle>
