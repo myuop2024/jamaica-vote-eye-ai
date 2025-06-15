@@ -147,9 +147,38 @@ export const DiditVerificationForm: React.FC = () => {
         description: "Please log in to start verification",
         variant: "destructive"
       });
+      console.error('Verification start error: User not authenticated');
       return;
     }
-
+    // Check for required profile data
+    if (!user.name || !user.email) {
+      toast({
+        title: "Profile Incomplete",
+        description: "Please complete your profile (name and email) before starting verification.",
+        variant: "destructive"
+      });
+      console.error('Verification start error: Profile incomplete', user);
+      return;
+    }
+    // Check that method/type is enabled
+    if (!config.enabled_verification_methods.includes(verificationMethod)) {
+      toast({
+        title: "Verification Method Disabled",
+        description: `The selected verification method (${verificationMethod}) is not enabled. Please contact support or try another method.`,
+        variant: "destructive"
+      });
+      console.error('Verification start error: Method not enabled', verificationMethod, config);
+      return;
+    }
+    if (verificationMethod === 'document' && !config.document_types_allowed.includes(documentType)) {
+      toast({
+        title: "Document Type Disabled",
+        description: `The selected document type (${documentType}) is not enabled. Please contact support or try another type.`,
+        variant: "destructive"
+      });
+      console.error('Verification start error: Document type not enabled', documentType, config);
+      return;
+    }
     setIsStarting(true);
     try {
       const { data, error } = await supabase.functions.invoke('didit-verification', {
@@ -160,24 +189,23 @@ export const DiditVerificationForm: React.FC = () => {
           document_type: verificationMethod === 'document' ? documentType : undefined
         }
       });
-
+      console.log('Didit verification backend response:', { data, error });
       if (error) throw error;
-
-      if (data?.success) {
+      if (data?.success && data.clientUrl) {
         toast({
           title: "Verification Started",
           description: "Redirecting to verification portal...",
         });
-
-        // Open verification in the same window to keep user in flow
-        if (data.clientUrl) {
-          window.location.href = data.clientUrl;
-        }
+        window.location.href = data.clientUrl;
+      } else if (data?.success && !data.clientUrl) {
+        console.error('Verification started but no clientUrl returned:', data);
+        throw new Error('Verification started but no verification portal URL was returned. Please contact support.');
       } else {
+        console.error('Verification backend error:', data);
         throw new Error(data?.error || 'Failed to start verification');
       }
     } catch (error) {
-      console.error('Verification start error:', error);
+      console.error('Verification start error (catch):', error);
       toast({
         title: "Verification Failed",
         description: error instanceof Error ? error.message : 'Failed to start verification',
