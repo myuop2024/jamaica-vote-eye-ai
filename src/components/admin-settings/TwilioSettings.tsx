@@ -18,13 +18,15 @@ import {
   MessageSquare,
   AlertTriangle,
   Eye,
-  EyeOff
+  EyeOff,
+  Save
 } from 'lucide-react';
 
 export const TwilioSettings: React.FC = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showApiKeys, setShowApiKeys] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
   
@@ -51,7 +53,7 @@ export const TwilioSettings: React.FC = () => {
     try {
       setIsLoading(true);
       // In a real implementation, you'd load from Supabase secrets or configuration table
-      // For now, we'll simulate loading settings
+      console.log('Loading Twilio settings...');
       
       toast({
         title: "Settings Loaded",
@@ -71,7 +73,7 @@ export const TwilioSettings: React.FC = () => {
 
   const handleSaveSettings = async () => {
     try {
-      setIsLoading(true);
+      setIsSaving(true);
       
       // Validate required fields
       if (!settings.accountSid || !settings.authToken || !settings.fromNumber) {
@@ -83,24 +85,36 @@ export const TwilioSettings: React.FC = () => {
         return;
       }
 
-      // In a real implementation, you'd save to Supabase secrets
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Settings Saved",
-        description: "Twilio configuration has been updated successfully"
+      const { data, error } = await supabase.functions.invoke('save-twilio-settings', {
+        body: {
+          accountSid: settings.accountSid,
+          authToken: settings.authToken,
+          fromNumber: settings.fromNumber,
+          enabled: settings.enabled
+        }
       });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: "Settings Saved",
+          description: "Twilio configuration has been updated successfully"
+        });
+        setConnectionStatus('unknown');
+      } else {
+        throw new Error(data.message || 'Failed to save settings');
+      }
       
-      setConnectionStatus('unknown');
     } catch (error: any) {
       console.error('Error saving Twilio settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save Twilio settings",
+        description: error.message || "Failed to save Twilio settings",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -169,8 +183,19 @@ export const TwilioSettings: React.FC = () => {
         return;
       }
 
+      // First, we need to save the settings before sending SMS
+      if (connectionStatus !== 'connected') {
+        toast({
+          title: "Info",
+          description: "Please save your settings and test the connection first",
+          variant: "default"
+        });
+        return;
+      }
+
       // You would implement a test phone number input here
-      const testNumber = '+1234567890'; // This should come from user input
+      const testNumber = prompt('Enter a test phone number (with country code, e.g., +1234567890):');
+      if (!testNumber) return;
       
       const { data, error } = await supabase.functions.invoke('send-sms', {
         body: {
@@ -195,7 +220,7 @@ export const TwilioSettings: React.FC = () => {
       console.error('Error sending test SMS:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to send test SMS",
+        description: error.message || "Failed to send test SMS. Make sure your settings are saved and connection is tested first.",
         variant: "destructive"
       });
     } finally {
@@ -326,10 +351,20 @@ export const TwilioSettings: React.FC = () => {
           <div className="flex gap-2">
             <Button 
               onClick={handleSaveSettings}
-              disabled={isLoading}
+              disabled={isSaving}
               className="bg-green-600 hover:bg-green-700"
             >
-              {isLoading ? "Saving..." : "Save Configuration"}
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Configuration
+                </>
+              )}
             </Button>
             
             <Button 
@@ -352,7 +387,7 @@ export const TwilioSettings: React.FC = () => {
 
             <Button 
               onClick={sendTestSMS}
-              disabled={isTesting || !settings.fromNumber}
+              disabled={isTesting || !settings.fromNumber || connectionStatus !== 'connected'}
               variant="outline"
             >
               <MessageSquare className="w-4 h-4 mr-2" />
@@ -394,6 +429,14 @@ export const TwilioSettings: React.FC = () => {
             <p><strong>Webhook URL:</strong> Optional endpoint to receive delivery status updates</p>
             <p><strong>Status Callback:</strong> Optional endpoint to receive message status changes</p>
           </div>
+          
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Important:</strong> You must save your configuration and test the connection before sending SMS messages. 
+              The settings need to be properly configured in the system for SMS functionality to work.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     </div>
