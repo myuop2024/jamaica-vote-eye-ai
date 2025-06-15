@@ -15,7 +15,9 @@ import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboardData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Settings } from 'lucide-react';
-import { useAuth, useNavigate, useToast } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 import { Users, MapPin, FileText, MessageSquare, Shield, Lock, Activity } from 'lucide-react';
 
 export const EnhancedAdminDashboard: React.FC = () => {

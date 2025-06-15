@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +46,24 @@ export const SecureSessionManager: React.FC = () => {
         .order('last_activity', { ascending: false });
 
       if (error) throw error;
-      setSessions(data || []);
+      
+      // Transform the database response to match our interface
+      const transformedSessions: SecureSession[] = (data || []).map(session => ({
+        id: session.id,
+        user_id: session.user_id,
+        session_token_hash: session.session_token_hash,
+        device_fingerprint: session.device_fingerprint,
+        ip_address: session.ip_address as string,
+        user_agent: session.user_agent,
+        encryption_level: session.encryption_level as 'standard' | 'enhanced' | 'military',
+        mfa_verified: session.mfa_verified,
+        risk_assessment: session.risk_assessment as Record<string, any>,
+        expires_at: session.expires_at,
+        last_activity: session.last_activity,
+        created_at: session.created_at
+      }));
+      
+      setSessions(transformedSessions);
     } catch (error) {
       toast({
         title: "Error",

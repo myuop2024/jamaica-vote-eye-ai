@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface EncryptionConfig {
@@ -230,7 +229,19 @@ export class EncryptionService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Transform the database response to match our interface
+    return (data || []).map(config => ({
+      id: config.id,
+      keyName: config.key_name,
+      keyVersion: config.key_version,
+      algorithm: config.algorithm,
+      keyStatus: config.key_status as 'active' | 'rotating' | 'deprecated',
+      complianceLevel: config.compliance_level as 'FIPS-140-2' | 'Common-Criteria' | 'NSA-Suite-B',
+      createdAt: config.created_at,
+      expiresAt: config.expires_at,
+      metadata: config.metadata as Record<string, any>
+    }));
   }
 
   async getAuditLogs(limit: number = 100): Promise<any[]> {
