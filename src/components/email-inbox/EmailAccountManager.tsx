@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Mail, AlertCircle, CheckCircle, Trash2 } from 'lucide-react';
+import { Plus, Mail, AlertCircle, CheckCircle, Trash2, ExternalLink } from 'lucide-react';
 import { useEmailAccounts } from './hooks/useEmailAccounts';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,10 +17,6 @@ export const EmailAccountManager: React.FC = () => {
     try {
       setIsConnecting(true);
       await connectGmail();
-      toast({
-        title: "Success",
-        description: "Gmail account connected successfully"
-      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -52,26 +48,45 @@ export const EmailAccountManager: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Connected Email Accounts</CardTitle>
+          <CardTitle>Gmail Integration</CardTitle>
           <CardDescription>
-            Manage your connected Gmail accounts for email synchronization
+            Connect your Gmail accounts to manage emails directly from the administration panel
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button 
-            onClick={handleConnectGmail}
-            disabled={isConnecting}
-            className="flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            {isConnecting ? 'Connecting...' : 'Connect Gmail Account'}
-          </Button>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Gmail integration requires OAuth authentication. A popup window will open for you to authorize access to your Gmail account.
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <Mail className="w-8 h-8 text-blue-600" />
+              <div>
+                <h3 className="font-medium">Gmail Account</h3>
+                <p className="text-sm text-gray-500">
+                  Connect your Gmail account to sync emails
+                </p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleConnectGmail}
+              disabled={isConnecting}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              {isConnecting ? 'Connecting...' : 'Connect Gmail'}
+              <ExternalLink className="w-4 h-4" />
+            </Button>
+          </div>
 
           {accounts.length === 0 && !isLoading && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                No email accounts connected. Connect a Gmail account to start managing emails.
+                No Gmail accounts connected. Click "Connect Gmail" above to get started.
               </AlertDescription>
             </Alert>
           )}
@@ -86,7 +101,7 @@ export const EmailAccountManager: React.FC = () => {
                       <div>
                         <p className="font-medium">{account.email_address}</p>
                         <p className="text-sm text-gray-500">
-                          Provider: {account.provider}
+                          Connected on {new Date(account.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

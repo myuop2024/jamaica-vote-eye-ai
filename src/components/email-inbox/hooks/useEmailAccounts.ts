@@ -54,25 +54,63 @@ export const useEmailAccounts = () => {
         throw new Error('User not authenticated');
       }
 
-      // This would typically involve OAuth flow with Gmail
-      // For now, we'll simulate the connection
-      const mockEmail = `admin${Date.now()}@example.com`;
+      // Create Gmail OAuth URL
+      const clientId = '367771538830-8u6rjgvl06ihvam6kvkue9fvi7h7jthl.apps.googleusercontent.com';
+      const redirectUri = `${window.location.origin}/auth/gmail/callback`;
+      const scope = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email';
       
-      const { error } = await supabase
-        .from('email_accounts')
-        .insert({
-          user_id: user.id,
-          email_address: mockEmail,
-          provider: 'gmail',
-          is_active: true,
-          access_token: 'mock_token',
-          refresh_token: 'mock_refresh_token'
-        });
+      const oauthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      oauthUrl.searchParams.set('client_id', clientId);
+      oauthUrl.searchParams.set('redirect_uri', redirectUri);
+      oauthUrl.searchParams.set('response_type', 'code');
+      oauthUrl.searchParams.set('scope', scope);
+      oauthUrl.searchParams.set('access_type', 'offline');
+      oauthUrl.searchParams.set('prompt', 'consent');
+      oauthUrl.searchParams.set('state', user.id);
 
-      if (error) throw error;
-      
-      // Refresh the accounts list
-      await fetchAccounts();
+      // Open OAuth popup
+      const popup = window.open(
+        oauthUrl.toString(),
+        'gmail-oauth',
+        'width=500,height=600,scrollbars=yes,resizable=yes'
+      );
+
+      // Listen for the OAuth callback
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          // Refresh accounts after OAuth flow
+          setTimeout(() => {
+            fetchAccounts();
+          }, 1000);
+        }
+      }, 1000);
+
+      // Listen for message from popup
+      const messageListener = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === 'GMAIL_OAUTH_SUCCESS') {
+          popup?.close();
+          toast({
+            title: "Success",
+            description: "Gmail account connected successfully"
+          });
+          fetchAccounts();
+          window.removeEventListener('message', messageListener);
+        } else if (event.data.type === 'GMAIL_OAUTH_ERROR') {
+          popup?.close();
+          toast({
+            title: "Error",
+            description: event.data.error || "Failed to connect Gmail account",
+            variant: "destructive"
+          });
+          window.removeEventListener('message', messageListener);
+        }
+      };
+
+      window.addEventListener('message', messageListener);
+
     } catch (error: any) {
       console.error('Error connecting Gmail:', error);
       throw error;
