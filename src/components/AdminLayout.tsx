@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
+  showSidebar?: boolean;
 }
 
-export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, showSidebar = false }) => {
   const { user, logout } = useAuth();
 
   return (
@@ -16,7 +17,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         userName={user?.name}
         onLogout={logout}
       />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className={showSidebar ? "h-full" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
         {children}
       </main>
     </div>

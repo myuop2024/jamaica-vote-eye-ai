@@ -8,7 +8,7 @@ import { CommunicationsManager } from '@/components/CommunicationsManager';
 import { VerificationCenter } from '@/components/VerificationCenter';
 import { ReportsManager } from '@/components/ReportsManager';
 import { PollingStationsManager } from '@/components/PollingStationsManager';
-import { SystemSettings } from '@/components/SystemSettings';
+import { SettingsLayout } from '@/components/admin-settings/SettingsLayout';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboardData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -62,7 +62,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
       case 'stations':
         return <PollingStationsManager />;
       case 'settings':
-        return <SystemSettings />;
+        return <SettingsLayout />;
       default:
         return (
           <DashboardOverview
@@ -98,6 +98,15 @@ export const EnhancedAdminDashboard: React.FC = () => {
       </div>
     );
   };
+
+  // Use different layout for settings to accommodate sidebar
+  if (activeSection === 'settings') {
+    return (
+      <AdminLayout showSidebar={true}>
+        {renderContent()}
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
