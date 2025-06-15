@@ -10,43 +10,43 @@ interface QuickActionsProps {
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ onNavigateToManagement }) => {
   return (
-    <Card className="lg:col-span-1">
-      <CardHeader>
+    <Card className="h-fit">
+      <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-        <CardDescription>Common administrative tasks</CardDescription>
+        <CardDescription className="text-sm">Common administrative tasks</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <Button 
-          className="w-full justify-start bg-green-600 hover:bg-green-700" 
+          className="w-full justify-start bg-green-600 hover:bg-green-700 text-sm" 
           size="sm"
           onClick={onNavigateToManagement}
         >
-          <Users className="w-4 h-4 mr-2" />
-          Manage Observers
+          <Users className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">Manage Observers</span>
         </Button>
         <Button 
-          className="w-full justify-start bg-blue-600 hover:bg-blue-700" 
+          className="w-full justify-start bg-blue-600 hover:bg-blue-700 text-sm" 
           size="sm"
           onClick={onNavigateToManagement}
         >
-          <MessageSquare className="w-4 h-4 mr-2" />
-          Send Communications
+          <MessageSquare className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">Send Communications</span>
         </Button>
         <Button 
-          className="w-full justify-start bg-purple-600 hover:bg-purple-700" 
+          className="w-full justify-start bg-purple-600 hover:bg-purple-700 text-sm" 
           size="sm"
           onClick={onNavigateToManagement}
         >
-          <Shield className="w-4 h-4 mr-2" />
-          Verification Center
+          <Shield className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">Verification Center</span>
         </Button>
         <Button 
-          className="w-full justify-start bg-orange-600 hover:bg-orange-700" 
+          className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-sm" 
           size="sm"
           onClick={onNavigateToManagement}
         >
-          <FileText className="w-4 h-4 mr-2" />
-          View Reports
+          <FileText className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="truncate">View Reports</span>
         </Button>
       </CardContent>
     </Card>

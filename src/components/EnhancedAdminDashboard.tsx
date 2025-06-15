@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { DashboardOverview } from '@/components/admin-dashboard/DashboardOverview';
@@ -33,7 +34,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const renderContent = () => {
     if (statsError || activityError) {
       return (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mx-4 sm:mx-0">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             Error loading dashboard data. Please try refreshing the page.
@@ -90,47 +91,50 @@ export const EnhancedAdminDashboard: React.FC = () => {
   const renderNavigation = () => {
     if (activeSection === 'overview' || activeSection === 'management') {
       return (
-        <div className="mb-6 flex justify-between items-center">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 sm:px-0">
           <div>
             {/* Empty div to maintain layout */}
           </div>
           <Button
             onClick={handleNavigateToSettings}
             variant="outline"
-            className="flex items-center gap-2"
+            size="sm"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
             <Settings className="w-4 h-4" />
-            System Settings
+            <span className="sm:inline">System Settings</span>
           </Button>
         </div>
       );
     }
 
     return (
-      <div className="mb-6 flex justify-between items-center">
-        <nav className="flex space-x-4 border-b border-gray-200 pb-2">
-          <button
-            onClick={() => setActiveSection('overview')}
-            className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+      <div className="mb-4 sm:mb-6 flex flex-col gap-4 px-4 sm:px-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <nav className="flex flex-wrap gap-2 sm:space-x-4 border-b border-gray-200 pb-2 w-full sm:w-auto">
+            <button
+              onClick={() => setActiveSection('overview')}
+              className="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 whitespace-nowrap"
+            >
+              ← Back to Overview
+            </button>
+            <button
+              onClick={() => setActiveSection('management')}
+              className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 whitespace-nowrap"
+            >
+              Management Center
+            </button>
+          </nav>
+          <Button
+            onClick={handleNavigateToSettings}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 w-full sm:w-auto"
           >
-            ← Back to Overview
-          </button>
-          <button
-            onClick={() => setActiveSection('management')}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
-          >
-            Management Center
-          </button>
-        </nav>
-        <Button
-          onClick={handleNavigateToSettings}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <Settings className="w-4 h-4" />
-          Settings
-        </Button>
+            <Settings className="w-4 h-4" />
+            <span className="sm:inline">Settings</span>
+          </Button>
+        </div>
       </div>
     );
   };
@@ -148,11 +152,13 @@ export const EnhancedAdminDashboard: React.FC = () => {
     <AdminLayout>
       {renderNavigation()}
       {statsLoading || activityLoading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-12 px-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
         </div>
       ) : (
-        renderContent()
+        <div className="px-4 sm:px-0">
+          {renderContent()}
+        </div>
       )}
     </AdminLayout>
   );
