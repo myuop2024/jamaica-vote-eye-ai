@@ -12,7 +12,8 @@ import { SettingsLayout } from '@/components/admin-settings/SettingsLayout';
 import { AdminVerificationManager } from '@/components/identity-verification/AdminVerificationManager';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboardData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, Settings } from 'lucide-react';
 
 export const EnhancedAdminDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState('overview');
@@ -22,6 +23,10 @@ export const EnhancedAdminDashboard: React.FC = () => {
 
   const handleNavigateToManagement = () => {
     setActiveSection('management');
+  };
+
+  const handleNavigateToSettings = () => {
+    setActiveSection('settings');
   };
 
   const renderContent = () => {
@@ -79,12 +84,26 @@ export const EnhancedAdminDashboard: React.FC = () => {
 
   const renderNavigation = () => {
     if (activeSection === 'overview' || activeSection === 'management') {
-      return null;
+      return (
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            {/* Empty div to maintain layout */}
+          </div>
+          <Button
+            onClick={handleNavigateToSettings}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            System Settings
+          </Button>
+        </div>
+      );
     }
 
     return (
-      <div className="mb-6">
-        <nav className="flex space-x-4 border-b border-gray-200">
+      <div className="mb-6 flex justify-between items-center">
+        <nav className="flex space-x-4 border-b border-gray-200 pb-2">
           <button
             onClick={() => setActiveSection('overview')}
             className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800"
@@ -98,6 +117,15 @@ export const EnhancedAdminDashboard: React.FC = () => {
             Management Center
           </button>
         </nav>
+        <Button
+          onClick={handleNavigateToSettings}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+        >
+          <Settings className="w-4 h-4" />
+          Settings
+        </Button>
       </div>
     );
   };
