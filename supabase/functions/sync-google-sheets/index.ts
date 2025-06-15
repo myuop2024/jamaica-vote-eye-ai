@@ -38,28 +38,35 @@ const handler = async (req: Request): Promise<Response> => {
     if (syncType === 'export') {
       // Export data from Supabase to Google Sheets
       let data;
-      let tableName = '';
       
       switch (dataType) {
         case 'reports':
-          tableName = 'observation_reports';
           const { data: reports, error: reportsError } = await supabase
             .from('observation_reports')
             .select(`
-              *,
-              profiles!inner(name, email)
+              id,
+              report_text,
+              station_id,
+              status,
+              created_at,
+              updated_at,
+              observer_id,
+              profiles!observer_id(name, email)
             `)
             .order('created_at', { ascending: false });
           
-          if (reportsError) throw reportsError;
+          if (reportsError) {
+            console.error('Reports fetch error:', reportsError);
+            throw reportsError;
+          }
           
           // Flatten the data for Google Sheets
           data = reports?.map(report => ({
             id: report.id,
-            observer_name: report.profiles?.name,
-            observer_email: report.profiles?.email,
+            observer_name: report.profiles?.name || 'Unknown',
+            observer_email: report.profiles?.email || '',
             report_text: report.report_text,
-            station_id: report.station_id,
+            station_id: report.station_id || '',
             status: report.status,
             created_at: report.created_at,
             updated_at: report.updated_at
@@ -67,25 +74,29 @@ const handler = async (req: Request): Promise<Response> => {
           break;
           
         case 'observers':
-          tableName = 'profiles';
           const { data: observers, error: observersError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, name, email, role, phone_number, assigned_station, verification_status, created_at')
             .eq('role', 'observer')
             .order('created_at', { ascending: false });
           
-          if (observersError) throw observersError;
+          if (observersError) {
+            console.error('Observers fetch error:', observersError);
+            throw observersError;
+          }
           data = observers;
           break;
           
         case 'communications':
-          tableName = 'communications';
           const { data: comms, error: commsError } = await supabase
             .from('communications')
-            .select('*')
+            .select('id, campaign_name, message_content, target_audience, status, sent_count, delivered_count, failed_count, created_at, sent_at')
             .order('created_at', { ascending: false });
           
-          if (commsError) throw commsError;
+          if (commsError) {
+            console.error('Communications fetch error:', commsError);
+            throw commsError;
+          }
           data = comms;
           break;
           
@@ -116,7 +127,24 @@ const handler = async (req: Request): Promise<Response> => {
 
       console.log(`Exporting ${data.length} records to Google Sheets`);
 
-      // Update Google Sheets
+      // Clear the sheet first, then update with new data
+      const clearResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}:clear?key=${googleSheetsKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!clearResponse.ok) {
+        const errorText = await clearResponse.text();
+        console.error('Google Sheets clear error:', errorText);
+        throw new Error(`Failed to clear sheet: ${errorText}`);
+      }
+
+      // Update Google Sheets with new data
       const updateResponse = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW&key=${googleSheetsKey}`,
         {
@@ -187,23 +215,38 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Insert into appropriate table
       let tableName = '';
+      let processedRecords = records;
+      
       switch (dataType) {
         case 'reports':
           tableName = 'observation_reports';
+          // Ensure required fields are present
+          processedRecords = records.filter(record => record.report_text && record.observer_id);
           break;
         case 'observers':
           tableName = 'profiles';
+          // Ensure required fields are present and set role
+          processedRecords = records.filter(record => record.name && record.email).map(record => ({
+            ...record,
+            role: record.role || 'observer'
+          }));
           break;
         case 'communications':
           tableName = 'communications';
+          // Ensure required fields are present
+          processedRecords = records.filter(record => record.campaign_name && record.message_content);
           break;
         default:
           throw new Error(`Invalid data type: ${dataType}`);
       }
 
+      if (processedRecords.length === 0) {
+        throw new Error('No valid records found to import. Please check the data format.');
+      }
+
       const { error } = await supabase
         .from(tableName)
-        .upsert(records, { 
+        .upsert(processedRecords, { 
           onConflict: 'id',
           ignoreDuplicates: false 
         });
@@ -217,8 +260,8 @@ const handler = async (req: Request): Promise<Response> => {
 
       return new Response(JSON.stringify({ 
         success: true,
-        message: `Successfully imported ${records.length} ${dataType} records from Google Sheets`,
-        importedRecords: records.length
+        message: `Successfully imported ${processedRecords.length} ${dataType} records from Google Sheets`,
+        importedRecords: processedRecords.length
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

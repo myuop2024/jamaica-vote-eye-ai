@@ -7,15 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { FileSpreadsheet, Download, Upload, AlertTriangle } from 'lucide-react';
+import { FileSpreadsheet, Download, Upload, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export const GoogleSheetsManager: React.FC = () => {
   const [spreadsheetId, setSpreadsheetId] = useState('');
-  const [range, setRange] = useState('A1:Z1000');
+  const [range, setRange] = useState('Sheet1!A1:Z1000');
   const [dataType, setDataType] = useState<'reports' | 'observers' | 'communications'>('reports');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null);
   const { toast } = useToast();
 
   const handleSync = async (syncType: 'export' | 'import') => {
@@ -29,6 +30,7 @@ export const GoogleSheetsManager: React.FC = () => {
     }
 
     setIsLoading(true);
+    setLastResult(null);
 
     try {
       console.log('Starting Google Sheets sync:', { syncType, dataType, spreadsheetId, range });
@@ -44,21 +46,36 @@ export const GoogleSheetsManager: React.FC = () => {
 
       if (error) {
         console.error('Sync error:', error);
-        throw error;
+        throw new Error(error.message || 'Failed to sync with Google Sheets');
       }
 
       console.log('Sync result:', data);
 
+      const result = {
+        success: true,
+        message: data.message || `${syncType === 'export' ? 'Export to' : 'Import from'} Google Sheets completed successfully`
+      };
+
+      setLastResult(result);
+
       toast({
         title: "Success",
-        description: data.message || `${syncType === 'export' ? 'Export to' : 'Import from'} Google Sheets completed successfully`
+        description: result.message
       });
 
     } catch (error: any) {
       console.error('Google Sheets sync error:', error);
+      
+      const result = {
+        success: false,
+        message: error.message || `Failed to ${syncType} data ${syncType === 'export' ? 'to' : 'from'} Google Sheets`
+      };
+
+      setLastResult(result);
+
       toast({
         title: "Sync Failed",
-        description: error.message || `Failed to ${syncType} data ${syncType === 'export' ? 'to' : 'from'} Google Sheets`,
+        description: result.message,
         variant: "destructive"
       });
     } finally {
@@ -94,6 +111,19 @@ export const GoogleSheetsManager: React.FC = () => {
             </AlertDescription>
           </Alert>
 
+          {lastResult && (
+            <Alert variant={lastResult.success ? "default" : "destructive"}>
+              {lastResult.success ? (
+                <CheckCircle className="h-4 w-4" />
+              ) : (
+                <AlertTriangle className="h-4 w-4" />
+              )}
+              <AlertDescription>
+                {lastResult.message}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="spreadsheet">Google Sheets URL or ID</Label>
@@ -113,13 +143,13 @@ export const GoogleSheetsManager: React.FC = () => {
               <Label htmlFor="range">Sheet Range</Label>
               <Input
                 id="range"
-                placeholder="A1:Z1000"
+                placeholder="Sheet1!A1:Z1000"
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
                 disabled={isLoading}
               />
               <p className="text-sm text-gray-500">
-                Specify the range in A1 notation (e.g., A1:Z1000, Sheet1!A1:C100)
+                Specify the range in A1 notation (e.g., Sheet1!A1:Z1000, Data!A1:C100)
               </p>
             </div>
 
@@ -163,8 +193,8 @@ export const GoogleSheetsManager: React.FC = () => {
 
           <Alert>
             <AlertDescription>
-              <strong>Export:</strong> Exports current data from the database to Google Sheets<br />
-              <strong>Import:</strong> Imports data from Google Sheets to the database (will update existing records)
+              <strong>Export:</strong> Exports current data from the database to Google Sheets (clears existing data first)<br />
+              <strong>Import:</strong> Imports data from Google Sheets to the database (will update existing records based on ID)
             </AlertDescription>
           </Alert>
         </CardContent>
