@@ -66,6 +66,7 @@ export type Database = {
       communications: {
         Row: {
           campaign_name: string
+          communication_type: Database["public"]["Enums"]["communication_type"]
           created_at: string
           delivered_count: number | null
           failed_count: number | null
@@ -75,11 +76,13 @@ export type Database = {
           sent_at: string | null
           sent_by: string
           sent_count: number | null
+          status: Database["public"]["Enums"]["communication_status"]
           target_audience: string
           target_filter: Json | null
         }
         Insert: {
           campaign_name: string
+          communication_type?: Database["public"]["Enums"]["communication_type"]
           created_at?: string
           delivered_count?: number | null
           failed_count?: number | null
@@ -89,11 +92,13 @@ export type Database = {
           sent_at?: string | null
           sent_by: string
           sent_count?: number | null
+          status?: Database["public"]["Enums"]["communication_status"]
           target_audience: string
           target_filter?: Json | null
         }
         Update: {
           campaign_name?: string
+          communication_type?: Database["public"]["Enums"]["communication_type"]
           created_at?: string
           delivered_count?: number | null
           failed_count?: number | null
@@ -103,6 +108,7 @@ export type Database = {
           sent_at?: string | null
           sent_by?: string
           sent_count?: number | null
+          status?: Database["public"]["Enums"]["communication_status"]
           target_audience?: string
           target_filter?: Json | null
         }
@@ -125,6 +131,7 @@ export type Database = {
           observer_id: string
           report_text: string
           station_id: string | null
+          status: Database["public"]["Enums"]["report_status"]
           updated_at: string
         }
         Insert: {
@@ -135,6 +142,7 @@ export type Database = {
           observer_id: string
           report_text: string
           station_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
           updated_at?: string
         }
         Update: {
@@ -145,6 +153,7 @@ export type Database = {
           observer_id?: string
           report_text?: string
           station_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
           updated_at?: string
         }
         Relationships: [
