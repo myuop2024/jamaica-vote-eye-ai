@@ -122,6 +122,173 @@ export type Database = {
           },
         ]
       }
+      didit_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          new_status: Database["public"]["Enums"]["verification_result"] | null
+          old_status: Database["public"]["Enums"]["verification_result"] | null
+          performed_by: string | null
+          user_agent: string | null
+          user_id: string | null
+          verification_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_status?: Database["public"]["Enums"]["verification_result"] | null
+          old_status?: Database["public"]["Enums"]["verification_result"] | null
+          performed_by?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          verification_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          new_status?: Database["public"]["Enums"]["verification_result"] | null
+          old_status?: Database["public"]["Enums"]["verification_result"] | null
+          performed_by?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          verification_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "didit_audit_log_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "didit_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "didit_audit_log_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "didit_verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      didit_configuration: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key: string
+          setting_value: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "didit_configuration_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      didit_verifications: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          didit_response: Json | null
+          didit_session_id: string | null
+          document_type: Database["public"]["Enums"]["document_type"] | null
+          error_message: string | null
+          expires_at: string | null
+          extracted_data: Json | null
+          id: string
+          status: Database["public"]["Enums"]["verification_result"]
+          updated_at: string
+          user_id: string
+          verification_metadata: Json | null
+          verification_method: Database["public"]["Enums"]["verification_method"]
+          verified_at: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          didit_response?: Json | null
+          didit_session_id?: string | null
+          document_type?: Database["public"]["Enums"]["document_type"] | null
+          error_message?: string | null
+          expires_at?: string | null
+          extracted_data?: Json | null
+          id?: string
+          status?: Database["public"]["Enums"]["verification_result"]
+          updated_at?: string
+          user_id: string
+          verification_metadata?: Json | null
+          verification_method: Database["public"]["Enums"]["verification_method"]
+          verified_at?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          didit_response?: Json | null
+          didit_session_id?: string | null
+          document_type?: Database["public"]["Enums"]["document_type"] | null
+          error_message?: string | null
+          expires_at?: string | null
+          extracted_data?: Json | null
+          id?: string
+          status?: Database["public"]["Enums"]["verification_result"]
+          updated_at?: string
+          user_id?: string
+          verification_metadata?: Json | null
+          verification_method?: Database["public"]["Enums"]["verification_method"]
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "didit_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       observation_reports: {
         Row: {
           attachments: Json | null
@@ -206,6 +373,11 @@ export type Database = {
         Row: {
           assigned_station: string | null
           created_at: string
+          didit_confidence_score: number | null
+          didit_verification_date: string | null
+          didit_verification_status:
+            | Database["public"]["Enums"]["verification_result"]
+            | null
           email: string
           id: string
           last_login: string | null
@@ -220,6 +392,11 @@ export type Database = {
         Insert: {
           assigned_station?: string | null
           created_at?: string
+          didit_confidence_score?: number | null
+          didit_verification_date?: string | null
+          didit_verification_status?:
+            | Database["public"]["Enums"]["verification_result"]
+            | null
           email: string
           id: string
           last_login?: string | null
@@ -234,6 +411,11 @@ export type Database = {
         Update: {
           assigned_station?: string | null
           created_at?: string
+          didit_confidence_score?: number | null
+          didit_verification_date?: string | null
+          didit_verification_status?:
+            | Database["public"]["Enums"]["verification_result"]
+            | null
           email?: string
           id?: string
           last_login?: string | null
@@ -308,7 +490,28 @@ export type Database = {
     Enums: {
       communication_status: "pending" | "sent" | "delivered" | "failed"
       communication_type: "sms" | "whatsapp" | "email"
+      document_type:
+        | "passport"
+        | "drivers_license"
+        | "national_id"
+        | "voters_id"
+        | "birth_certificate"
+        | "utility_bill"
+        | "bank_statement"
       report_status: "submitted" | "under_review" | "resolved" | "flagged"
+      verification_method:
+        | "document"
+        | "biometric"
+        | "liveness"
+        | "address"
+        | "phone"
+        | "email"
+      verification_result:
+        | "pending"
+        | "verified"
+        | "failed"
+        | "expired"
+        | "cancelled"
       verification_status: "pending" | "verified" | "rejected"
     }
     CompositeTypes: {
@@ -427,7 +630,31 @@ export const Constants = {
     Enums: {
       communication_status: ["pending", "sent", "delivered", "failed"],
       communication_type: ["sms", "whatsapp", "email"],
+      document_type: [
+        "passport",
+        "drivers_license",
+        "national_id",
+        "voters_id",
+        "birth_certificate",
+        "utility_bill",
+        "bank_statement",
+      ],
       report_status: ["submitted", "under_review", "resolved", "flagged"],
+      verification_method: [
+        "document",
+        "biometric",
+        "liveness",
+        "address",
+        "phone",
+        "email",
+      ],
+      verification_result: [
+        "pending",
+        "verified",
+        "failed",
+        "expired",
+        "cancelled",
+      ],
       verification_status: ["pending", "verified", "rejected"],
     },
   },
