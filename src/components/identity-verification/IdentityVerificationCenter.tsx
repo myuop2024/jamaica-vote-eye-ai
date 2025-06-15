@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, CheckCircle, Clock, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
-import { DiditConnectionTest } from './DiditConnectionTest';
 import { DiditVerificationForm } from './DiditVerificationForm';
 import { DiditVerification } from '@/types/didit';
 
@@ -125,6 +124,7 @@ export const IdentityVerificationCenter: React.FC = () => {
 
   const hasActiveVerification = userVerifications.some(v => v.status === 'pending');
   const latestVerification = userVerifications[0];
+  const hasVerifiedStatus = userVerifications.some(v => v.status === 'verified' || v.status === 'success');
 
   return (
     <div className="space-y-6">
@@ -132,16 +132,28 @@ export const IdentityVerificationCenter: React.FC = () => {
         <Shield className="w-16 h-16 mx-auto mb-4 text-green-600" />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Identity Verification</h1>
         <p className="text-lg text-gray-600">
-          Verify your identity using Didit's secure verification service
+          Secure identity verification for electoral observation
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <DiditConnectionTest />
-          
-          {!hasActiveVerification && (
+          {!hasActiveVerification && !hasVerifiedStatus && (
             <DiditVerificationForm />
+          )}
+          
+          {hasVerifiedStatus && (
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-green-800 mb-2">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="font-medium">Identity Verified</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Your identity has been successfully verified. You can now participate in electoral observation activities.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
 
@@ -174,7 +186,7 @@ export const IdentityVerificationCenter: React.FC = () => {
                 <div className="text-center py-8 text-gray-500">
                   <Shield className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p>No verification attempts yet</p>
-                  <p className="text-sm">Start your first verification above</p>
+                  <p className="text-sm">Complete your verification above</p>
                 </div>
               ) : (
                 <div className="space-y-4">

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,31 +9,136 @@ import { supabase } from '@/integrations/supabase/client';
 import { Shield, FileText, User, CreditCard, Home, Phone, Mail, RefreshCw } from 'lucide-react';
 import { VerificationMethod, DocumentType } from '@/types/didit';
 
+interface DiditConfig {
+  enabled_verification_methods: string[];
+  document_types_allowed: string[];
+}
+
 export const DiditVerificationForm: React.FC = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isStarting, setIsStarting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [verificationMethod, setVerificationMethod] = useState<VerificationMethod>('document');
   const [documentType, setDocumentType] = useState<DocumentType>('passport');
+  const [config, setConfig] = useState<DiditConfig>({
+    enabled_verification_methods: ['document'],
+    document_types_allowed: ['passport', 'drivers_license', 'national_id', 'voters_id']
+  });
 
-  const verificationMethods = [
-    { value: 'document', label: 'Document Verification', icon: FileText, description: 'Verify using government-issued documents' },
-    { value: 'biometric', label: 'Biometric Verification', icon: User, description: 'Facial recognition and liveness detection' },
-    { value: 'liveness', label: 'Liveness Detection', icon: User, description: 'Verify you are a real person' },
-    { value: 'address', label: 'Address Verification', icon: Home, description: 'Verify your residential address' },
-    { value: 'phone', label: 'Phone Verification', icon: Phone, description: 'Verify your phone number' },
-    { value: 'email', label: 'Email Verification', icon: Mail, description: 'Verify your email address' }
-  ];
+  useEffect(() => {
+    loadConfiguration();
+  }, []);
 
-  const documentTypes = [
-    { value: 'passport', label: 'Passport' },
-    { value: 'drivers_license', label: 'Driver\'s License' },
-    { value: 'national_id', label: 'National ID' },
-    { value: 'voters_id', label: 'Voter\'s ID' },
-    { value: 'birth_certificate', label: 'Birth Certificate' },
-    { value: 'utility_bill', label: 'Utility Bill' },
-    { value: 'bank_statement', label: 'Bank Statement' }
-  ];
+  const loadConfiguration = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('didit_configuration')
+        .select('setting_key, setting_value')
+        .in('setting_key', ['enabled_verification_methods', 'document_types_allowed'])
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error loading configuration:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const configMap = data.reduce((acc, item) => {
+          let value = item.setting_value;
+          if (typeof value === 'string') {
+            try {
+              value = JSON.parse(value);
+            } catch {
+              // If parsing fails, use the original value
+            }
+          } else if (typeof value === 'object' && value !== null && 'value' in value) {
+            value = (value as any).value;
+          }
+          acc[item.setting_key] = value;
+          return acc;
+        }, {} as Record<string, any>);
+
+        const updatedConfig = {
+          enabled_verification_methods: Array.isArray(configMap.enabled_verification_methods) 
+            ? configMap.enabled_verification_methods 
+            : ['document'],
+          document_types_allowed: Array.isArray(configMap.document_types_allowed) 
+            ? configMap.document_types_allowed 
+            : ['passport', 'drivers_license', 'national_id', 'voters_id']
+        };
+
+        setConfig(updatedConfig);
+        
+        // Set default verification method to the first available one
+        if (updatedConfig.enabled_verification_methods.length > 0) {
+          setVerificationMethod(updatedConfig.enabled_verification_methods[0] as VerificationMethod);
+        }
+        
+        // Set default document type to the first available one
+        if (updatedConfig.document_types_allowed.length > 0) {
+          setDocumentType(updatedConfig.document_types_allowed[0] as DocumentType);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading verification configuration:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getMethodIcon = (method: string) => {
+    switch (method) {
+      case 'document':
+        return FileText;
+      case 'biometric':
+      case 'liveness':
+        return User;
+      default:
+        return Shield;
+    }
+  };
+
+  const getMethodLabel = (method: string) => {
+    switch (method) {
+      case 'document':
+        return 'Document Verification';
+      case 'biometric':
+        return 'Biometric Verification';
+      case 'liveness':
+        return 'Liveness Detection';
+      case 'address':
+        return 'Address Verification';
+      case 'phone':
+        return 'Phone Verification';
+      case 'email':
+        return 'Email Verification';
+      default:
+        return method.charAt(0).toUpperCase() + method.slice(1);
+    }
+  };
+
+  const getDocumentLabel = (docType: string) => {
+    switch (docType) {
+      case 'passport':
+        return 'Passport';
+      case 'drivers_license':
+        return "Driver's License";
+      case 'national_id':
+        return 'National ID';
+      case 'voters_id':
+        return "Voter's ID";
+      case 'birth_certificate':
+        return 'Birth Certificate';
+      case 'utility_bill':
+        return 'Utility Bill';
+      case 'bank_statement':
+        return 'Bank Statement';
+      default:
+        return docType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+  };
 
   const startVerification = async () => {
     if (!user) {
@@ -62,12 +166,12 @@ export const DiditVerificationForm: React.FC = () => {
       if (data?.success) {
         toast({
           title: "Verification Started",
-          description: "Redirecting to Didit verification portal...",
+          description: "Redirecting to verification portal...",
         });
 
-        // Open Didit verification in a new window
+        // Open verification in the same window to keep user in flow
         if (data.clientUrl) {
-          window.open(data.clientUrl, '_blank', 'width=800,height=600');
+          window.location.href = data.clientUrl;
         }
       } else {
         throw new Error(data?.error || 'Failed to start verification');
@@ -84,7 +188,23 @@ export const DiditVerificationForm: React.FC = () => {
     }
   };
 
-  const selectedMethod = verificationMethods.find(m => m.value === verificationMethod);
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Loading Verification Options...
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const MethodIcon = getMethodIcon(verificationMethod);
 
   return (
     <Card>
@@ -94,36 +214,35 @@ export const DiditVerificationForm: React.FC = () => {
           Start Identity Verification
         </CardTitle>
         <CardDescription>
-          Choose your verification method and complete the identity verification process
+          Complete the identity verification process as required by your organization
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="verification-method">Verification Method</Label>
-          <Select
-            value={verificationMethod}
-            onValueChange={(value: VerificationMethod) => setVerificationMethod(value)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {verificationMethods.map((method) => (
-                <SelectItem key={method.value} value={method.value}>
-                  <div className="flex items-center gap-2">
-                    <method.icon className="w-4 h-4" />
-                    <div>
-                      <div className="font-medium">{method.label}</div>
-                      <div className="text-xs text-gray-500">{method.description}</div>
+        {config.enabled_verification_methods.length > 1 && (
+          <div className="space-y-2">
+            <Label htmlFor="verification-method">Verification Method</Label>
+            <Select
+              value={verificationMethod}
+              onValueChange={(value: VerificationMethod) => setVerificationMethod(value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {config.enabled_verification_methods.map((method) => (
+                  <SelectItem key={method} value={method}>
+                    <div className="flex items-center gap-2">
+                      {React.createElement(getMethodIcon(method), { className: "w-4 h-4" })}
+                      <span>{getMethodLabel(method)}</span>
                     </div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-        {verificationMethod === 'document' && (
+        {verificationMethod === 'document' && config.document_types_allowed.length > 1 && (
           <div className="space-y-2">
             <Label htmlFor="document-type">Document Type</Label>
             <Select
@@ -134,9 +253,9 @@ export const DiditVerificationForm: React.FC = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {documentTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
+                {config.document_types_allowed.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {getDocumentLabel(type)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -144,15 +263,18 @@ export const DiditVerificationForm: React.FC = () => {
           </div>
         )}
 
-        {selectedMethod && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <selectedMethod.icon className="w-4 h-4 text-blue-600" />
-              <span className="font-medium text-blue-900">{selectedMethod.label}</span>
-            </div>
-            <p className="text-sm text-blue-700">{selectedMethod.description}</p>
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <MethodIcon className="w-4 h-4 text-blue-600" />
+            <span className="font-medium text-blue-900">{getMethodLabel(verificationMethod)}</span>
           </div>
-        )}
+          <p className="text-sm text-blue-700">
+            {verificationMethod === 'document' && 'You will be asked to take photos of your government-issued document.'}
+            {verificationMethod === 'biometric' && 'You will be asked to take a selfie and verify your identity.'}
+            {verificationMethod === 'liveness' && 'You will be asked to perform simple actions to verify you are a real person.'}
+            {!['document', 'biometric', 'liveness'].includes(verificationMethod) && 'Follow the instructions to complete verification.'}
+          </p>
+        </div>
 
         <Button
           onClick={startVerification}
@@ -176,8 +298,8 @@ export const DiditVerificationForm: React.FC = () => {
           <p>By starting verification, you agree to:</p>
           <ul className="list-disc list-inside ml-2 mt-1">
             <li>Provide accurate information</li>
-            <li>Allow Didit to process your identity documents</li>
-            <li>Share verification results with our platform</li>
+            <li>Allow secure processing of your identity documents</li>
+            <li>Share verification results with this platform</li>
           </ul>
         </div>
       </CardContent>
