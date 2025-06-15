@@ -22,6 +22,7 @@ export const EmailMessageList: React.FC<EmailMessageListProps> = ({ type, accoun
   const { 
     messages, 
     isLoading, 
+    isSyncing,
     markAsRead, 
     syncMessages 
   } = useEmailMessages(selectedAccount === 'all' ? undefined : selectedAccount, type);
@@ -93,12 +94,12 @@ export const EmailMessageList: React.FC<EmailMessageListProps> = ({ type, accoun
             </Select>
             <Button 
               onClick={() => syncMessages()}
-              disabled={isLoading}
+              disabled={isLoading || isSyncing}
               variant="outline"
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Sync
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Sync'}
             </Button>
           </div>
         </CardContent>
@@ -110,6 +111,12 @@ export const EmailMessageList: React.FC<EmailMessageListProps> = ({ type, accoun
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>{type === 'inbox' ? 'Inbox' : 'Sent'} ({filteredMessages.length})</span>
+              {isSyncing && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Syncing
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -122,6 +129,9 @@ export const EmailMessageList: React.FC<EmailMessageListProps> = ({ type, accoun
               <div className="p-6 text-center">
                 <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No messages found</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Try syncing your emails or connecting more accounts
+                </p>
               </div>
             ) : (
               <div className="max-h-96 overflow-y-auto">
@@ -146,7 +156,10 @@ export const EmailMessageList: React.FC<EmailMessageListProps> = ({ type, accoun
                           )}
                         </div>
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {type === 'inbox' ? message.from_email : 'To: ' + (message.to_emails as string[])?.[0]}
+                          {type === 'inbox' ? 
+                            (message.from_name || message.from_email) : 
+                            'To: ' + (message.to_emails as string[])?.[0]
+                          }
                         </p>
                         <p className="text-sm text-gray-600 truncate">
                           {message.subject || '(No subject)'}

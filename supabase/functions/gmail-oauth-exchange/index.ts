@@ -26,7 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Missing required parameters');
     }
 
-    // Gmail OAuth credentials (these would typically be stored as secrets)
+    // Gmail OAuth credentials
     const clientId = '367771538830-8u6rjgvl06ihvam6kvkue9fvi7h7jthl.apps.googleusercontent.com';
     const clientSecret = Deno.env.get('GMAIL_CLIENT_SECRET');
 
@@ -69,6 +69,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     const userInfo = await userInfoResponse.json();
 
+    // Test Gmail API access
+    const gmailTestResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+      },
+    });
+
+    if (!gmailTestResponse.ok) {
+      throw new Error('Failed to access Gmail API - insufficient permissions');
+    }
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -92,17 +103,40 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (dbError) {
+      console.error('Database error:', dbError);
       throw dbError;
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      email: userInfo.email,
-      accountId: emailAccount.id
-    }), {
+    // Close the popup window by posting a message
+    const responseHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Gmail Connected</title>
+        </head>
+        <body>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GMAIL_OAUTH_SUCCESS',
+                data: {
+                  email: '${userInfo.email}',
+                  accountId: '${emailAccount.id}'
+                }
+              }, window.location.origin);
+              window.close();
+            } else {
+              document.body.innerHTML = '<h1>Gmail account connected successfully!</h1><p>You can close this window.</p>';
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    return new Response(responseHtml, {
       status: 200,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/html',
         ...corsHeaders,
       },
     });
@@ -110,12 +144,32 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error('Error in gmail-oauth-exchange:', error);
     
-    return new Response(JSON.stringify({
-      error: error.message
-    }), {
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Gmail Connection Error</title>
+        </head>
+        <body>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'GMAIL_OAUTH_ERROR',
+                error: '${error.message}'
+              }, window.location.origin);
+              window.close();
+            } else {
+              document.body.innerHTML = '<h1>Error connecting Gmail</h1><p>${error.message}</p>';
+            }
+          </script>
+        </body>
+      </html>
+    `;
+    
+    return new Response(errorHtml, {
       status: 500,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/html',
         ...corsHeaders,
       },
     });

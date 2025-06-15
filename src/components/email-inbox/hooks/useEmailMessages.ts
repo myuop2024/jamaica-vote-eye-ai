@@ -8,6 +8,7 @@ import { EmailMessage } from '../types';
 export const useEmailMessages = (accountId?: string, type: 'inbox' | 'sent' = 'inbox') => {
   const [messages, setMessages] = useState<EmailMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -77,11 +78,12 @@ export const useEmailMessages = (accountId?: string, type: 'inbox' | 'sent' = 'i
         throw new Error('User not authenticated');
       }
 
-      // This would typically call Gmail API to sync messages
-      // For now, we'll create some mock messages for demonstration
+      setIsSyncing(true);
+
+      // Get active accounts to sync
       const { data: accounts } = await supabase
         .from('email_accounts')
-        .select('id')
+        .select('id, email_address')
         .eq('is_active', true)
         .eq('user_id', user.id);
 
@@ -94,52 +96,41 @@ export const useEmailMessages = (accountId?: string, type: 'inbox' | 'sent' = 'i
         return;
       }
 
-      const mockMessages = [
-        {
-          email_account_id: accounts[0].id,
-          message_id: `msg_${Date.now()}_1`,
-          subject: 'Welcome to Electoral Management System',
-          from_email: 'notifications@electoral.gov.jm',
-          from_name: 'Electoral Commission',
-          to_emails: ['admin@electoral.gov.jm'],
-          body_text: 'Welcome to the Electoral Management System. Your account has been set up successfully.',
-          is_read: false,
-          is_sent: type === 'sent',
-          received_at: new Date().toISOString()
-        },
-        {
-          email_account_id: accounts[0].id,
-          message_id: `msg_${Date.now()}_2`,
-          subject: 'System Update Notification',
-          from_email: 'system@electoral.gov.jm',
-          from_name: 'System Administrator',
-          to_emails: ['admin@electoral.gov.jm'],
-          body_text: 'The system has been updated with new features. Please review the changes.',
-          is_read: false,
-          is_sent: type === 'sent',
-          received_at: new Date(Date.now() - 3600000).toISOString()
-        }
-      ];
+      // Determine which account to sync
+      const accountToSync = accountId 
+        ? accounts.find(acc => acc.id === accountId)
+        : accounts[0];
 
-      const { error } = await supabase
-        .from('email_messages')
-        .upsert(mockMessages, { onConflict: 'email_account_id,message_id' });
+      if (!accountToSync) {
+        throw new Error('No valid account found for syncing');
+      }
+
+      // Call the Gmail sync edge function
+      const { data, error } = await supabase.functions.invoke('gmail-sync-messages', {
+        body: {
+          accountId: accountToSync.id,
+          maxResults: 50
+        }
+      });
 
       if (error) throw error;
 
+      // Refresh messages after sync
       await fetchMessages();
       
       toast({
         title: "Success",
-        description: "Messages synced successfully"
+        description: `Synced ${data.syncedCount} messages from ${accountToSync.email_address}`
       });
     } catch (error: any) {
       console.error('Error syncing messages:', error);
       toast({
         title: "Error",
-        description: "Failed to sync messages",
+        description: error.message || "Failed to sync messages",
         variant: "destructive"
       });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -155,6 +146,7 @@ export const useEmailMessages = (accountId?: string, type: 'inbox' | 'sent' = 'i
   return {
     messages,
     isLoading,
+    isSyncing,
     fetchMessages,
     markAsRead,
     syncMessages
