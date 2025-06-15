@@ -10,6 +10,7 @@ import { VerificationPrompt } from '@/components/VerificationPrompt';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
 
 export const ObserverDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -82,7 +83,7 @@ export const ObserverDashboard: React.FC = () => {
     setProfileLoading(true);
     setProfileError(null);
     try {
-      const { error } = await window.supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           name: profileForm.name.trim(),
