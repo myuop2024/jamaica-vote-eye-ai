@@ -60,14 +60,18 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
     }
 
     try {
-      // Create the user account
-      const { data, error: signupError } = await supabase.auth.admin.createUser({
+      // Use regular signup instead of admin.createUser
+      const { data, error: signupError } = await supabase.auth.signUp({
         email: formData.email.trim(),
         password: formData.password,
-        user_metadata: {
-          name: formData.name.trim(),
-          role: formData.role,
-          phone_number: formData.phone_number.trim() || null
+        options: {
+          data: {
+            name: formData.name.trim(),
+            role: formData.role,
+            phone_number: formData.phone_number.trim() || null,
+            assigned_station: formData.assigned_station.trim() || null
+          },
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
 
@@ -82,26 +86,9 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
       }
 
       if (data.user) {
-        // Update the profile with additional information
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            name: formData.name.trim(),
-            role: formData.role,
-            phone_number: formData.phone_number.trim() || null,
-            assigned_station: formData.assigned_station.trim() || null,
-            verification_status: formData.role === 'admin' ? 'verified' : 'pending'
-          })
-          .eq('id', data.user.id);
-
-        if (profileError) {
-          console.error('Profile update error:', profileError);
-          // Don't fail the whole operation for profile updates
-        }
-
         toast({
           title: "User Created Successfully",
-          description: `${formData.role === 'admin' ? 'Admin' : 'Observer'} account created for ${formData.name}`
+          description: `${formData.role === 'admin' ? 'Admin' : 'Observer'} account created for ${formData.name}. They will need to verify their email.`
         });
 
         // Reset form and close dialog
