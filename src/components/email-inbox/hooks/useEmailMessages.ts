@@ -2,23 +2,32 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { EmailMessage } from '../types';
 
 export const useEmailMessages = (accountId?: string, type: 'inbox' | 'sent' = 'inbox') => {
   const [messages, setMessages] = useState<EmailMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchMessages = async () => {
     try {
       setIsLoading(true);
+      
+      if (!user) {
+        setMessages([]);
+        return;
+      }
+
       let query = supabase
         .from('email_messages')
         .select(`
           *,
-          email_accounts!inner(email_address)
+          email_accounts!inner(email_address, user_id)
         `)
         .eq('is_sent', type === 'sent')
+        .eq('email_accounts.user_id', user.id)
         .order('received_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
@@ -63,15 +72,27 @@ export const useEmailMessages = (accountId?: string, type: 'inbox' | 'sent' = 'i
   };
 
   const syncMessages = async () => {
-    // This would typically call Gmail API to sync messages
-    // For now, we'll create some mock messages for demonstration
     try {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // This would typically call Gmail API to sync messages
+      // For now, we'll create some mock messages for demonstration
       const { data: accounts } = await supabase
         .from('email_accounts')
         .select('id')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('user_id', user.id);
 
-      if (!accounts || accounts.length === 0) return;
+      if (!accounts || accounts.length === 0) {
+        toast({
+          title: "Info",
+          description: "No active email accounts to sync",
+          variant: "default"
+        });
+        return;
+      }
 
       const mockMessages = [
         {
@@ -123,8 +144,13 @@ export const useEmailMessages = (accountId?: string, type: 'inbox' | 'sent' = 'i
   };
 
   useEffect(() => {
-    fetchMessages();
-  }, [accountId, type]);
+    if (user) {
+      fetchMessages();
+    } else {
+      setIsLoading(false);
+      setMessages([]);
+    }
+  }, [accountId, type, user]);
 
   return {
     messages,

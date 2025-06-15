@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface EmailAccount {
   id: string;
@@ -16,12 +17,21 @@ export const useEmailAccounts = () => {
   const [accounts, setAccounts] = useState<EmailAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchAccounts = async () => {
     try {
+      setIsLoading(true);
+      
+      if (!user) {
+        setAccounts([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('email_accounts')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -39,41 +49,66 @@ export const useEmailAccounts = () => {
   };
 
   const connectGmail = async () => {
-    // This would typically involve OAuth flow with Gmail
-    // For now, we'll simulate the connection
-    const mockEmail = `admin${Date.now()}@example.com`;
-    
-    const { error } = await supabase
-      .from('email_accounts')
-      .insert({
-        email_address: mockEmail,
-        provider: 'gmail',
-        is_active: true,
-        access_token: 'mock_token',
-        refresh_token: 'mock_refresh_token'
-      });
+    try {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-    if (error) throw error;
-    
-    // Refresh the accounts list
-    await fetchAccounts();
+      // This would typically involve OAuth flow with Gmail
+      // For now, we'll simulate the connection
+      const mockEmail = `admin${Date.now()}@example.com`;
+      
+      const { error } = await supabase
+        .from('email_accounts')
+        .insert({
+          user_id: user.id,
+          email_address: mockEmail,
+          provider: 'gmail',
+          is_active: true,
+          access_token: 'mock_token',
+          refresh_token: 'mock_refresh_token'
+        });
+
+      if (error) throw error;
+      
+      // Refresh the accounts list
+      await fetchAccounts();
+    } catch (error: any) {
+      console.error('Error connecting Gmail:', error);
+      throw error;
+    }
   };
 
   const removeAccount = async (accountId: string) => {
-    const { error } = await supabase
-      .from('email_accounts')
-      .delete()
-      .eq('id', accountId);
+    try {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-    if (error) throw error;
-    
-    // Refresh the accounts list
-    await fetchAccounts();
+      const { error } = await supabase
+        .from('email_accounts')
+        .delete()
+        .eq('id', accountId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      // Refresh the accounts list
+      await fetchAccounts();
+    } catch (error: any) {
+      console.error('Error removing account:', error);
+      throw error;
+    }
   };
 
   useEffect(() => {
-    fetchAccounts();
-  }, []);
+    if (user) {
+      fetchAccounts();
+    } else {
+      setIsLoading(false);
+      setAccounts([]);
+    }
+  }, [user]);
 
   return {
     accounts,
