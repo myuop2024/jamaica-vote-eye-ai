@@ -289,6 +289,163 @@ export type Database = {
           },
         ]
       }
+      email_accounts: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          email_address: string
+          id: string
+          is_active: boolean
+          provider: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          email_address: string
+          id?: string
+          is_active?: boolean
+          provider?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          email_address?: string
+          id?: string
+          is_active?: boolean
+          provider?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_attachments: {
+        Row: {
+          attachment_id: string | null
+          content_url: string | null
+          created_at: string
+          filename: string
+          id: string
+          message_id: string
+          mime_type: string | null
+          size_bytes: number | null
+        }
+        Insert: {
+          attachment_id?: string | null
+          content_url?: string | null
+          created_at?: string
+          filename: string
+          id?: string
+          message_id: string
+          mime_type?: string | null
+          size_bytes?: number | null
+        }
+        Update: {
+          attachment_id?: string | null
+          content_url?: string | null
+          created_at?: string
+          filename?: string
+          id?: string
+          message_id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_messages: {
+        Row: {
+          bcc_emails: Json | null
+          body_html: string | null
+          body_text: string | null
+          cc_emails: Json | null
+          created_at: string
+          email_account_id: string
+          from_email: string
+          from_name: string | null
+          has_attachments: boolean
+          id: string
+          is_read: boolean
+          is_sent: boolean
+          labels: Json | null
+          message_id: string
+          received_at: string | null
+          sent_at: string | null
+          subject: string | null
+          thread_id: string | null
+          to_emails: Json
+          updated_at: string
+        }
+        Insert: {
+          bcc_emails?: Json | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_emails?: Json | null
+          created_at?: string
+          email_account_id: string
+          from_email: string
+          from_name?: string | null
+          has_attachments?: boolean
+          id?: string
+          is_read?: boolean
+          is_sent?: boolean
+          labels?: Json | null
+          message_id: string
+          received_at?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_emails?: Json
+          updated_at?: string
+        }
+        Update: {
+          bcc_emails?: Json | null
+          body_html?: string | null
+          body_text?: string | null
+          cc_emails?: Json | null
+          created_at?: string
+          email_account_id?: string
+          from_email?: string
+          from_name?: string | null
+          has_attachments?: boolean
+          id?: string
+          is_read?: boolean
+          is_sent?: boolean
+          labels?: Json | null
+          message_id?: string
+          received_at?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_emails?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_email_account_id_fkey"
+            columns: ["email_account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       observation_reports: {
         Row: {
           attachments: Json | null

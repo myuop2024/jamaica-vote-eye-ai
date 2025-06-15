@@ -6,6 +6,7 @@ import { SMSAnalytics } from './SMSAnalytics';
 import { SystemSettings } from '../SystemSettings';
 import { NotificationSettings } from './NotificationSettings';
 import { CommunicationsSettings } from './CommunicationsSettings';
+import { EmailInbox } from '../email-inbox/EmailInbox';
 import { SecuritySettings } from './SecuritySettings';
 import { DataSettings } from './DataSettings';
 import { UserSettings } from './UserSettings';
@@ -30,6 +31,8 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({ activeSection 
         return <NotificationSettings />;
       case 'communications':
         return <CommunicationsSettings />;
+      case 'email-inbox':
+        return <EmailInbox />;
       case 'security':
         return <SecuritySettings />;
       case 'data':

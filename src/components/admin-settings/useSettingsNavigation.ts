@@ -8,6 +8,7 @@ export type SettingsSection =
   | 'sms-analytics'
   | 'notifications'
   | 'communications'
+  | 'email-inbox'
   | 'security'
   | 'data'
   | 'users';
