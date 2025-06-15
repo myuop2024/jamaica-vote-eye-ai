@@ -2,120 +2,109 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  Mail, 
-  Shield, 
-  FileText, 
-  MapPin, 
-  Settings,
-  Inbox,
-  MessageSquare
-} from 'lucide-react';
+import { Users, MessageSquare, FileText, Shield, BarChart3, Mail, UserCheck, MapPin, FileSpreadsheet } from 'lucide-react';
 
 interface ManagementNavigationProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
 }
 
-const managementSections = [
-  {
-    id: 'users',
-    title: 'User Management',
-    description: 'Manage observers, administrators, and user accounts',
-    icon: Users,
-    color: 'bg-blue-50 text-blue-600 border-blue-200'
-  },
-  {
-    id: 'inbox',
-    title: 'Email Inbox',
-    description: 'Manage email accounts and view messages',
-    icon: Inbox,
-    color: 'bg-green-50 text-green-600 border-green-200'
-  },
-  {
-    id: 'communications',
-    title: 'Communications',
-    description: 'Send messages and manage communication campaigns',
-    icon: MessageSquare,
-    color: 'bg-purple-50 text-purple-600 border-purple-200'
-  },
-  {
-    id: 'verification',
-    title: 'Verification Center',
-    description: 'Review and approve observer verification requests',
-    icon: Shield,
-    color: 'bg-yellow-50 text-yellow-600 border-yellow-200'
-  },
-  {
-    id: 'identity-verification',
-    title: 'Identity Verification',
-    description: 'Manage Didit identity verification system',
-    icon: Shield,
-    color: 'bg-orange-50 text-orange-600 border-orange-200'
-  },
-  {
-    id: 'reports',
-    title: 'Reports Management',
-    description: 'View and analyze observation reports',
-    icon: FileText,
-    color: 'bg-red-50 text-red-600 border-red-200'
-  },
-  {
-    id: 'stations',
-    title: 'Polling Stations',
-    description: 'Manage polling station information and assignments',
-    icon: MapPin,
-    color: 'bg-indigo-50 text-indigo-600 border-indigo-200'
-  },
-  {
-    id: 'settings',
-    title: 'System Settings',
-    description: 'Configure system preferences and integrations',
-    icon: Settings,
-    color: 'bg-gray-50 text-gray-600 border-gray-200'
-  }
-];
-
 export const ManagementNavigation: React.FC<ManagementNavigationProps> = ({
   activeSection,
   onSectionChange
 }) => {
+  const managementSections = [
+    {
+      id: 'users',
+      label: 'User Management',
+      icon: Users,
+      description: 'Manage observer accounts, roles, and permissions',
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'inbox',
+      label: 'Email Inbox',
+      icon: Mail,
+      description: 'Connect and manage Gmail accounts for communication',
+      color: 'bg-purple-500'
+    },
+    {
+      id: 'communications',
+      label: 'Communications',
+      icon: MessageSquare,
+      description: 'Send messages and manage communication campaigns',
+      color: 'bg-green-500'
+    },
+    {
+      id: 'reports',
+      label: 'Reports',
+      icon: FileText,
+      description: 'Review and analyze observation reports',
+      color: 'bg-orange-500'
+    },
+    {
+      id: 'verification',
+      label: 'Verification Center',
+      icon: Shield,
+      description: 'Verify observer credentials and documents',
+      color: 'bg-red-500'
+    },
+    {
+      id: 'identity-verification',
+      label: 'Identity Verification',
+      icon: UserCheck,
+      description: 'Advanced identity verification with Didit',
+      color: 'bg-indigo-500'
+    },
+    {
+      id: 'stations',
+      label: 'Polling Stations',
+      icon: MapPin,
+      description: 'Manage polling station assignments and locations',
+      color: 'bg-teal-500'
+    },
+    {
+      id: 'google-sheets',
+      label: 'Google Sheets',
+      icon: FileSpreadsheet,
+      description: 'Import/export data to Google Sheets',
+      color: 'bg-emerald-500'
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Management Center</h2>
-        <p className="text-gray-600">
-          Access all administrative tools and management functions
-        </p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            Management Center
+          </CardTitle>
+          <CardDescription>
+            Access all administrative tools and management features
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {managementSections.map((section) => (
           <Card 
-            key={section.id}
-            className="hover:shadow-md transition-shadow cursor-pointer"
+            key={section.id} 
+            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105"
             onClick={() => onSectionChange(section.id)}
           >
-            <CardHeader className="pb-3">
-              <div className={`w-12 h-12 rounded-lg ${section.color} flex items-center justify-center mb-3`}>
-                <section.icon className="w-6 h-6" />
+            <CardHeader className="text-center pb-2">
+              <div className={`mx-auto w-12 h-12 rounded-full ${section.color} flex items-center justify-center mb-2`}>
+                <section.icon className="w-6 h-6 text-white" />
               </div>
-              <CardTitle className="text-lg">{section.title}</CardTitle>
-              <CardDescription className="text-sm">
+              <CardTitle className="text-lg">{section.label}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center pt-0">
+              <CardDescription className="text-sm mb-4">
                 {section.description}
               </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSectionChange(section.id);
-                }}
-              >
-                Access {section.title}
+              <Button variant="outline" size="sm" className="w-full">
+                Access
               </Button>
             </CardContent>
           </Card>

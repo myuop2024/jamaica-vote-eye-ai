@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { DashboardOverview } from '@/components/admin-dashboard/DashboardOverview';
@@ -11,6 +10,7 @@ import { PollingStationsManager } from '@/components/PollingStationsManager';
 import { SettingsLayout } from '@/components/admin-settings/SettingsLayout';
 import { AdminVerificationManager } from '@/components/identity-verification/AdminVerificationManager';
 import { EmailInbox } from '@/components/email-inbox/EmailInbox';
+import { GoogleSheetsManager } from '@/components/google-sheets/GoogleSheetsManager';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboardData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -72,6 +72,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
         return <ReportsManager />;
       case 'stations':
         return <PollingStationsManager />;
+      case 'google-sheets':
+        return <GoogleSheetsManager />;
       case 'settings':
         return <SettingsLayout />;
       default:

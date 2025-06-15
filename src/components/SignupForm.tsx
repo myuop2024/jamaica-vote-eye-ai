@@ -28,7 +28,13 @@ export const SignupForm: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    // Add basic validation
+    // Enhanced validation
+    if (!email.trim()) {
+      setError('Email is required');
+      setIsLoading(false);
+      return;
+    }
+
     if (password.length < 6) {
       setError('Password must be at least 6 characters long');
       setIsLoading(false);
@@ -41,11 +47,22 @@ export const SignupForm: React.FC = () => {
       return;
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      console.log('Attempting signup with:', { email, role, name });
+      console.log('Starting signup process with:', { email, role, name });
+      
+      // Clear any existing session first
+      await supabase.auth.signOut();
       
       const { data, error: signupError } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           data: {
@@ -61,33 +78,46 @@ export const SignupForm: React.FC = () => {
       if (signupError) {
         console.error('Signup error:', signupError);
         
-        // Provide more specific error messages
+        // More specific error handling
         if (signupError.message.includes('already registered')) {
           setError('An account with this email already exists. Please try logging in instead.');
         } else if (signupError.message.includes('invalid email')) {
           setError('Please enter a valid email address.');
         } else if (signupError.message.includes('weak password')) {
-          setError('Password is too weak. Please use at least 6 characters with a mix of letters and numbers.');
+          setError('Password is too weak. Please use at least 6 characters.');
+        } else if (signupError.message.includes('email rate limit')) {
+          setError('Too many signup attempts. Please try again later.');
         } else {
-          setError(`Signup failed: ${signupError.message}`);
+          setError(signupError.message || 'Failed to create account');
         }
         return;
       }
 
       if (data.user) {
+        console.log('User created successfully:', data.user.id);
+        
         toast({
-          title: "Success",
+          title: "Account Created Successfully!",
           description: role === 'admin' 
-            ? "Admin account created successfully! You can now log in."
-            : "Account created successfully! Please check your email for verification."
+            ? "Admin account created. You can now log in."
+            : "Observer account created. Please check your email for verification instructions."
         });
 
-        // For admin accounts, redirect directly to login since they're auto-verified
-        navigate('/login');
+        // Auto-navigate to login after a brief delay
+        setTimeout(() => {
+          navigate('/login', { 
+            state: { 
+              email, 
+              message: role === 'observer' 
+                ? 'Please check your email for verification before logging in.'
+                : 'You can now log in with your credentials.'
+            } 
+          });
+        }, 2000);
       }
     } catch (err: any) {
-      console.error('Unexpected error:', err);
-      setError(`An unexpected error occurred: ${err.message || 'Please try again.'}`);
+      console.error('Unexpected signup error:', err);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -136,6 +166,7 @@ export const SignupForm: React.FC = () => {
                 placeholder="Enter your full name"
                 required
                 className="h-12"
+                disabled={isLoading}
               />
             </div>
 
@@ -149,6 +180,7 @@ export const SignupForm: React.FC = () => {
                 placeholder="Enter your email"
                 required
                 className="h-12"
+                disabled={isLoading}
               />
             </div>
 
@@ -161,12 +193,17 @@ export const SignupForm: React.FC = () => {
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="Enter your phone number (optional)"
                 className="h-12"
+                disabled={isLoading}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="role">Role *</Label>
-              <Select value={role} onValueChange={(value: 'observer' | 'admin') => setRole(value)}>
+              <Select 
+                value={role} 
+                onValueChange={(value: 'observer' | 'admin') => setRole(value)}
+                disabled={isLoading}
+              >
                 <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select your role" />
                 </SelectTrigger>
@@ -189,6 +226,7 @@ export const SignupForm: React.FC = () => {
                   required
                   minLength={6}
                   className="h-12 pr-12"
+                  disabled={isLoading}
                 />
                 <Button
                   type="button"
@@ -196,6 +234,7 @@ export const SignupForm: React.FC = () => {
                   size="sm"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
@@ -222,6 +261,7 @@ export const SignupForm: React.FC = () => {
                 type="button"
                 onClick={() => navigate('/login')}
                 className="text-sm text-green-600 hover:text-green-800 underline"
+                disabled={isLoading}
               >
                 Already have an account? Sign in
               </button>

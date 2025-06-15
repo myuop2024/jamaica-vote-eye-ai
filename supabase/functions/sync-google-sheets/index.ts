@@ -22,9 +22,12 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { spreadsheetId, range, syncType, dataType }: SyncRequest = await req.json();
     
+    console.log('Google Sheets sync request:', { spreadsheetId, range, syncType, dataType });
+    
     const googleSheetsKey = Deno.env.get('GOOGLE_SHEETS_API_KEY');
     if (!googleSheetsKey) {
-      throw new Error('Google Sheets API key not configured');
+      console.error('Google Sheets API key not found in environment');
+      throw new Error('Google Sheets API key not configured. Please add GOOGLE_SHEETS_API_KEY to your Supabase project secrets.');
     }
 
     const supabase = createClient(
@@ -35,39 +38,83 @@ const handler = async (req: Request): Promise<Response> => {
     if (syncType === 'export') {
       // Export data from Supabase to Google Sheets
       let data;
+      let tableName = '';
+      
       switch (dataType) {
         case 'reports':
-          const { data: reports } = await supabase
+          tableName = 'observation_reports';
+          const { data: reports, error: reportsError } = await supabase
             .from('observation_reports')
-            .select('*')
+            .select(`
+              *,
+              profiles!inner(name, email)
+            `)
             .order('created_at', { ascending: false });
-          data = reports;
+          
+          if (reportsError) throw reportsError;
+          
+          // Flatten the data for Google Sheets
+          data = reports?.map(report => ({
+            id: report.id,
+            observer_name: report.profiles?.name,
+            observer_email: report.profiles?.email,
+            report_text: report.report_text,
+            station_id: report.station_id,
+            status: report.status,
+            created_at: report.created_at,
+            updated_at: report.updated_at
+          }));
           break;
+          
         case 'observers':
-          const { data: observers } = await supabase
+          tableName = 'profiles';
+          const { data: observers, error: observersError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('role', 'observer');
+            .eq('role', 'observer')
+            .order('created_at', { ascending: false });
+          
+          if (observersError) throw observersError;
           data = observers;
           break;
+          
         case 'communications':
-          const { data: comms } = await supabase
+          tableName = 'communications';
+          const { data: comms, error: commsError } = await supabase
             .from('communications')
             .select('*')
             .order('created_at', { ascending: false });
+          
+          if (commsError) throw commsError;
           data = comms;
           break;
+          
         default:
-          throw new Error('Invalid data type');
+          throw new Error(`Invalid data type: ${dataType}`);
       }
 
       if (!data || data.length === 0) {
-        throw new Error('No data to export');
+        return new Response(JSON.stringify({ 
+          success: true,
+          message: `No ${dataType} data found to export`,
+          exportedRecords: 0
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       // Convert data to Google Sheets format
       const headers = Object.keys(data[0]);
-      const values = [headers, ...data.map(row => headers.map(header => row[header] || ''))];
+      const values = [headers, ...data.map(row => headers.map(header => {
+        const value = row[header];
+        // Handle different data types for Google Sheets
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+      }))];
+
+      console.log(`Exporting ${data.length} records to Google Sheets`);
 
       // Update Google Sheets
       const updateResponse = await fetch(
@@ -84,14 +131,18 @@ const handler = async (req: Request): Promise<Response> => {
       );
 
       if (!updateResponse.ok) {
-        throw new Error(`Google Sheets API error: ${updateResponse.statusText}`);
+        const errorText = await updateResponse.text();
+        console.error('Google Sheets API error:', errorText);
+        throw new Error(`Google Sheets API error (${updateResponse.status}): ${errorText}`);
       }
 
       const result = await updateResponse.json();
+      console.log('Export completed successfully:', result);
 
       return new Response(JSON.stringify({ 
         success: true,
-        message: `Exported ${data.length} ${dataType} records to Google Sheets`,
+        message: `Successfully exported ${data.length} ${dataType} records to Google Sheets`,
+        exportedRecords: data.length,
         updatedCells: result.updatedCells
       }), {
         status: 200,
@@ -100,19 +151,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     } else {
       // Import data from Google Sheets to Supabase
+      console.log('Importing data from Google Sheets');
+      
       const response = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${googleSheetsKey}`
       );
 
       if (!response.ok) {
-        throw new Error(`Google Sheets API error: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Google Sheets API error:', errorText);
+        throw new Error(`Google Sheets API error (${response.status}): ${errorText}`);
       }
 
       const sheetData = await response.json();
       const values = sheetData.values;
 
       if (!values || values.length < 2) {
-        throw new Error('No data found in sheet');
+        throw new Error('No data found in the specified sheet range. Make sure the sheet contains headers and data.');
       }
 
       const headers = values[0];
@@ -122,10 +177,13 @@ const handler = async (req: Request): Promise<Response> => {
       const records = rows.map(row => {
         const record: any = {};
         headers.forEach((header: string, index: number) => {
-          record[header] = row[index] || null;
+          const value = row[index];
+          record[header] = value === '' ? null : value;
         });
         return record;
       });
+
+      console.log(`Importing ${records.length} records from Google Sheets`);
 
       // Insert into appropriate table
       let tableName = '';
@@ -140,20 +198,27 @@ const handler = async (req: Request): Promise<Response> => {
           tableName = 'communications';
           break;
         default:
-          throw new Error('Invalid data type');
+          throw new Error(`Invalid data type: ${dataType}`);
       }
 
       const { error } = await supabase
         .from(tableName)
-        .upsert(records);
+        .upsert(records, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        });
 
       if (error) {
+        console.error('Database error:', error);
         throw new Error(`Database error: ${error.message}`);
       }
 
+      console.log('Import completed successfully');
+
       return new Response(JSON.stringify({ 
         success: true,
-        message: `Imported ${records.length} ${dataType} records from Google Sheets`
+        message: `Successfully imported ${records.length} ${dataType} records from Google Sheets`,
+        importedRecords: records.length
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -162,7 +227,10 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error('Error in Google Sheets sync:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'Check the function logs for more information'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
