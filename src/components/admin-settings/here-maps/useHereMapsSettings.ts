@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -69,6 +68,8 @@ export const useHereMapsSettings = () => {
           key: 'here_maps_config',
           value: configToSave,
           description: 'HERE Maps API configuration'
+        }, {
+          onConflict: 'key'
         });
 
       if (error) throw error;
