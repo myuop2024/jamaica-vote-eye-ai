@@ -12,7 +12,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Settings, Shield, Database, Bell, Mail, Users, Key, Phone, BarChart3, Inbox } from 'lucide-react';
+import { Settings, Shield, Database, Bell, Mail, Users, Key, Phone, BarChart3, Inbox, MapPin } from 'lucide-react';
 import { SettingsSection } from './useSettingsNavigation';
 
 interface AdminSidebarProps {
@@ -38,6 +38,12 @@ const settingsSections = [
     label: 'Twilio SMS',
     icon: Phone,
     description: 'SMS service config'
+  },
+  {
+    id: 'here-maps' as const,
+    label: 'HERE Maps',
+    icon: MapPin,
+    description: 'Address & location services'
   },
   {
     id: 'sms-analytics' as const,

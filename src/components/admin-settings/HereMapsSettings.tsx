@@ -36,18 +36,34 @@ export const HereMapsSettings: React.FC = () => {
   const loadConfig = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'here_maps_config')
-        .single();
+      // Use raw SQL query to avoid TypeScript issues with new table
+      const { data, error } = await supabase.rpc('exec', {
+        sql: `SELECT value FROM public.system_settings WHERE key = 'here_maps_config'`
+      });
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
+      if (error) {
+        // If the function doesn't exist, try direct query
+        const directQuery = await supabase
+          .from('system_settings' as any)
+          .select('value')
+          .eq('key', 'here_maps_config')
+          .single();
 
-      if (data?.value) {
-        const savedConfig = JSON.parse(data.value) as HereMapsConfig;
+        if (directQuery.error && directQuery.error.code !== 'PGRST116') {
+          throw directQuery.error;
+        }
+
+        if (directQuery.data?.value) {
+          const savedConfig = directQuery.data.value as HereMapsConfig;
+          setConfig(savedConfig);
+          
+          // Initialize service if API key exists
+          if (savedConfig.apiKey) {
+            initializeHereMapsService(savedConfig.apiKey);
+          }
+        }
+      } else if (data && data.length > 0) {
+        const savedConfig = data[0].value as HereMapsConfig;
         setConfig(savedConfig);
         
         // Initialize service if API key exists
@@ -80,10 +96,10 @@ export const HereMapsSettings: React.FC = () => {
       };
 
       const { error } = await supabase
-        .from('system_settings')
+        .from('system_settings' as any)
         .upsert({
           key: 'here_maps_config',
-          value: JSON.stringify(configToSave),
+          value: configToSave,
           description: 'HERE Maps API configuration'
         });
 

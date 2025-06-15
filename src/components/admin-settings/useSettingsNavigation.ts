@@ -3,15 +3,16 @@ import { useState } from 'react';
 
 export type SettingsSection = 
   | 'general'
-  | 'didit'
-  | 'twilio'
-  | 'sms-analytics'
-  | 'notifications'
-  | 'communications'
-  | 'email-inbox'
+  | 'users' 
   | 'security'
+  | 'communications'
+  | 'notifications'
   | 'data'
-  | 'users';
+  | 'twilio'
+  | 'didit'
+  | 'sms-analytics'
+  | 'here-maps'
+  | 'email-inbox';
 
 export const useSettingsNavigation = () => {
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
