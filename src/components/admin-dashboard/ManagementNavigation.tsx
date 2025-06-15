@@ -1,14 +1,17 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
   Users, 
   MessageSquare, 
   Shield, 
   FileText, 
-  MapPin,
-  Settings
+  MapPin, 
+  Settings,
+  UserCheck,
+  Eye,
+  TrendingUp
 } from 'lucide-react';
 
 interface ManagementNavigationProps {
@@ -16,80 +19,128 @@ interface ManagementNavigationProps {
   onSectionChange: (section: string) => void;
 }
 
-const navigationItems = [
-  {
-    id: 'users',
-    label: 'User Management',
-    icon: Users,
-    description: 'Manage observers and verification',
-    color: 'bg-blue-500 hover:bg-blue-600'
-  },
-  {
-    id: 'communications',
-    label: 'Communications',
-    icon: MessageSquare,
-    description: 'Send SMS and WhatsApp messages',
-    color: 'bg-green-500 hover:bg-green-600'
-  },
-  {
-    id: 'verification',
-    label: 'Verification Center',
-    icon: Shield,
-    description: 'Review documents and approve users',
-    color: 'bg-purple-500 hover:bg-purple-600'
-  },
-  {
-    id: 'reports',
-    label: 'Reports & Analytics',
-    icon: FileText,
-    description: 'View and analyze observation reports',
-    color: 'bg-orange-500 hover:bg-orange-600'
-  },
-  {
-    id: 'stations',
-    label: 'Polling Stations',
-    icon: MapPin,
-    description: 'Manage polling station assignments',
-    color: 'bg-red-500 hover:bg-red-600'
-  },
-  {
-    id: 'settings',
-    label: 'System Settings',
-    icon: Settings,
-    description: 'Configure system preferences',
-    color: 'bg-gray-500 hover:bg-gray-600'
-  }
-];
-
 export const ManagementNavigation: React.FC<ManagementNavigationProps> = ({
-  activeSection,
   onSectionChange
 }) => {
+  const managementSections = [
+    {
+      id: 'users',
+      title: 'User Management',
+      description: 'Manage observer accounts, roles, and permissions',
+      icon: Users,
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'verification',
+      title: 'Document Verification',
+      description: 'Review and verify observer documentation',
+      icon: UserCheck,
+      color: 'bg-green-500'
+    },
+    {
+      id: 'identity-verification',
+      title: 'Identity Verification',
+      description: 'Manage didit identity verification system',
+      icon: Shield,
+      color: 'bg-purple-500'
+    },
+    {
+      id: 'communications',
+      title: 'Communications',
+      description: 'Send messages and manage communication campaigns',
+      icon: MessageSquare,
+      color: 'bg-yellow-500'
+    },
+    {
+      id: 'reports',
+      title: 'Reports & Analytics',
+      description: 'View observation reports and system analytics',
+      icon: FileText,
+      color: 'bg-red-500'
+    },
+    {
+      id: 'stations',
+      title: 'Polling Stations',
+      description: 'Manage polling station information and assignments',
+      icon: MapPin,
+      color: 'bg-indigo-500'
+    },
+    {
+      id: 'settings',
+      title: 'System Settings',
+      description: 'Configure system preferences and integrations',
+      icon: Settings,
+      color: 'bg-gray-500'
+    }
+  ];
+
   return (
-    <Card>
-      <CardContent className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Management Center</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {navigationItems.map((item) => (
-            <Button
-              key={item.id}
-              variant={activeSection === item.id ? "default" : "outline"}
-              className={`h-auto p-4 justify-start flex-col space-y-2 ${
-                activeSection === item.id 
-                  ? item.color + ' text-white' 
-                  : 'hover:bg-gray-50'
-              }`}
-              onClick={() => onSectionChange(item.id)}
-            >
-              <item.icon className="w-6 h-6" />
-              <div className="text-center">
-                <div className="font-semibold">{item.label}</div>
-                <div className="text-xs opacity-80">{item.description}</div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Management Center</h1>
+        <p className="text-gray-600 mt-2">
+          Access all administrative tools and system management features
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {managementSections.map((section) => (
+          <Card key={section.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader className="pb-4">
+              <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${section.color}`}>
+                  <section.icon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">{section.title}</CardTitle>
+                </div>
               </div>
-            </Button>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            </CardHeader>
+            <CardContent>
+              <CardDescription className="mb-4">
+                {section.description}
+              </CardDescription>
+              <Button 
+                onClick={() => onSectionChange(section.id)}
+                className="w-full"
+                variant="outline"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Access {section.title}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="bg-green-50 border-green-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <TrendingUp className="w-5 h-5" />
+            Quick Stats
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-700">24/7</div>
+              <div className="text-sm text-green-600">System Monitoring</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-700">99.9%</div>
+              <div className="text-sm text-green-600">Uptime</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-700">Real-time</div>
+              <div className="text-sm text-green-600">Data Updates</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-700">Secure</div>
+              <div className="text-sm text-green-600">Infrastructure</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

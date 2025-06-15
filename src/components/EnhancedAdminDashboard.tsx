@@ -9,6 +9,7 @@ import { VerificationCenter } from '@/components/VerificationCenter';
 import { ReportsManager } from '@/components/ReportsManager';
 import { PollingStationsManager } from '@/components/PollingStationsManager';
 import { SettingsLayout } from '@/components/admin-settings/SettingsLayout';
+import { AdminVerificationManager } from '@/components/identity-verification/AdminVerificationManager';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboardData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
@@ -57,6 +58,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
         return <CommunicationsManager />;
       case 'verification':
         return <VerificationCenter />;
+      case 'identity-verification':
+        return <AdminVerificationManager />;
       case 'reports':
         return <ReportsManager />;
       case 'stations':

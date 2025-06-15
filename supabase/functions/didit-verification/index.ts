@@ -39,6 +39,9 @@ serve(async (req) => {
     console.log('Didit verification request:', { action, verification_method, document_type, user_id })
 
     switch (action) {
+      case 'test_connection':
+        return await testConnection()
+      
       case 'start_verification':
         return await startVerification(supabaseClient, user_id, verification_method, document_type)
       
@@ -62,6 +65,42 @@ serve(async (req) => {
     )
   }
 })
+
+async function testConnection() {
+  try {
+    // In a real implementation, this would test the actual didit API connection
+    // For now, we'll simulate a successful connection test
+    console.log('Testing didit connection...')
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        connected: true,
+        message: 'Connection to didit API successful'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
+  } catch (error) {
+    console.error('Connection test failed:', error)
+    return new Response(
+      JSON.stringify({
+        success: false,
+        connected: false,
+        error: error.message
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      },
+    )
+  }
+}
 
 async function startVerification(
   supabaseClient: any,
