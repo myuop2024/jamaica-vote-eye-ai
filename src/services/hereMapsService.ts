@@ -77,6 +77,12 @@ const JAMAICA_BOUNDS = {
   west: -78.5
 };
 
+// Jamaica center coordinates
+const JAMAICA_CENTER = {
+  lat: 18.1096,
+  lng: -77.2975
+};
+
 // Common Jamaican parishes for address validation
 export const JAMAICAN_PARISHES = [
   'Clarendon',
@@ -99,33 +105,113 @@ class HereMapsService {
   private config: HereApiConfig;
 
   constructor(apiKey: string, config?: Partial<HereApiConfig>) {
+    if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+      throw new Error('Valid HERE Maps API key is required');
+    }
+
     this.config = {
-      apiKey,
+      apiKey: apiKey.trim(),
       ...DEFAULT_CONFIG,
       ...config
     };
   }
 
   /**
-   * Geocode an address to get coordinates and structured address data
+   * Validate API key format (basic validation)
    */
-  async geocodeAddress(query: string): Promise<GeocodeResult[]> {
+  private validateApiKey(): boolean {
+    const apiKey = this.config.apiKey;
+    // HERE API keys are typically alphanumeric with hyphens and underscores
+    const keyPattern = /^[A-Za-z0-9_-]+$/;
+    return keyPattern.test(apiKey) && apiKey.length >= 20;
+  }
+
+  /**
+   * Format coordinates for HERE API
+   */
+  private formatCoordinates(lat: number, lng: number): string {
+    return `${lat.toFixed(6)},${lng.toFixed(6)}`;
+  }
+
+  /**
+   * Format bounding box for HERE API
+   */
+  private formatBoundingBox(bounds: typeof JAMAICA_BOUNDS): string {
+    return `${bounds.west},${bounds.south},${bounds.east},${bounds.north}`;
+  }
+
+  /**
+   * Make HTTP request with error handling
+   */
+  private async makeRequest(url: string): Promise<any> {
+    console.log('HERE Maps API Request:', url);
+    
+    if (!this.validateApiKey()) {
+      throw new Error('Invalid API key format. Please check your HERE Maps API key.');
+    }
+
     try {
-      const params = new URLSearchParams({
-        q: query,
-        apiKey: this.config.apiKey,
-        // Bias results towards Jamaica
-        in: `bbox:${JAMAICA_BOUNDS.west},${JAMAICA_BOUNDS.south},${JAMAICA_BOUNDS.east},${JAMAICA_BOUNDS.north}`,
-        limit: '10'
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        }
       });
 
-      const response = await fetch(`${this.config.baseUrls.geocoding}/geocode?${params}`);
-      
+      console.log('HERE Maps API Response Status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`HERE API error: ${response.status} ${response.statusText}`);
+        let errorMessage = `HERE API error: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          console.error('HERE Maps API Error Details:', errorData);
+          
+          if (errorData.error) {
+            errorMessage = `HERE API error: ${errorData.error.title || errorData.error.message || errorMessage}`;
+          }
+        } catch (parseError) {
+          console.error('Could not parse error response:', parseError);
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      console.log('HERE Maps API Response Data:', data);
+      return data;
+      
+    } catch (error) {
+      console.error('HERE Maps request failed:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network error: Could not connect to HERE Maps API. Please check your internet connection.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Geocode an address to get coordinates and structured address data
+   */
+  async geocodeAddress(query: string): Promise<GeocodeResult[]> {
+    if (!query || query.trim().length === 0) {
+      throw new Error('Query parameter is required for geocoding');
+    }
+
+    try {
+      const params = new URLSearchParams({
+        q: query.trim(),
+        apiKey: this.config.apiKey,
+        limit: '10',
+        // Use 'in' parameter for country restriction (more reliable than bbox)
+        in: `countryCode:JAM`
+      });
+
+      // Add Jamaica bounding box as additional bias
+      params.append('bias', this.formatCoordinates(JAMAICA_CENTER.lat, JAMAICA_CENTER.lng));
+
+      const url = `${this.config.baseUrls.geocoding}/geocode?${params}`;
+      const data = await this.makeRequest(url);
       
       return data.items?.map((item: any) => ({
         title: item.title,
@@ -144,20 +230,19 @@ class HereMapsService {
    * Reverse geocode coordinates to get address
    */
   async reverseGeocode(lat: number, lng: number): Promise<GeocodeResult[]> {
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      throw new Error('Valid latitude and longitude are required for reverse geocoding');
+    }
+
     try {
       const params = new URLSearchParams({
-        at: `${lat},${lng}`,
+        at: this.formatCoordinates(lat, lng),
         apiKey: this.config.apiKey,
         limit: '5'
       });
 
-      const response = await fetch(`${this.config.baseUrls.geocoding}/revgeocode?${params}`);
-      
-      if (!response.ok) {
-        throw new Error(`HERE API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const url = `${this.config.baseUrls.geocoding}/revgeocode?${params}`;
+      const data = await this.makeRequest(url);
       
       return data.items?.map((item: any) => ({
         title: item.title,
@@ -180,35 +265,33 @@ class HereMapsService {
     limit?: number;
     categories?: string[];
   }): Promise<PlaceSearchResult[]> {
+    if (!query || query.trim().length === 0) {
+      throw new Error('Query parameter is required for places search');
+    }
+
     try {
       const params = new URLSearchParams({
-        q: query,
+        q: query.trim(),
         apiKey: this.config.apiKey,
         limit: String(options?.limit || 10)
       });
 
-      // If coordinates provided, search around that location
+      // Set search location
       if (options?.at) {
-        params.append('at', `${options.at.lat},${options.at.lng}`);
+        params.append('at', this.formatCoordinates(options.at.lat, options.at.lng));
       } else {
-        // Default to Jamaica center
-        params.append('at', '18.1096,-77.2975');
+        params.append('at', this.formatCoordinates(JAMAICA_CENTER.lat, JAMAICA_CENTER.lng));
       }
 
-      // Bias towards Jamaica
-      params.append('in', `bbox:${JAMAICA_BOUNDS.west},${JAMAICA_BOUNDS.south},${JAMAICA_BOUNDS.east},${JAMAICA_BOUNDS.north}`);
+      // Restrict to Jamaica
+      params.append('in', 'countryCode:JAM');
 
       if (options?.categories?.length) {
         params.append('categories', options.categories.join(','));
       }
 
-      const response = await fetch(`${this.config.baseUrls.places}/discover?${params}`);
-      
-      if (!response.ok) {
-        throw new Error(`HERE API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const url = `${this.config.baseUrls.places}/discover?${params}`;
+      const data = await this.makeRequest(url);
       
       return data.items?.map((item: any) => ({
         title: item.title,
@@ -232,21 +315,15 @@ class HereMapsService {
 
     try {
       const params = new URLSearchParams({
-        q: query,
+        q: query.trim(),
         apiKey: this.config.apiKey,
         limit: '8',
-        // Focus on Jamaica
-        at: '18.1096,-77.2975', // Jamaica center
-        in: `bbox:${JAMAICA_BOUNDS.west},${JAMAICA_BOUNDS.south},${JAMAICA_BOUNDS.east},${JAMAICA_BOUNDS.north}`
+        at: this.formatCoordinates(JAMAICA_CENTER.lat, JAMAICA_CENTER.lng),
+        in: 'countryCode:JAM'
       });
 
-      const response = await fetch(`${this.config.baseUrls.places}/autosuggest?${params}`);
-      
-      if (!response.ok) {
-        throw new Error(`HERE API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const url = `${this.config.baseUrls.places}/autosuggest?${params}`;
+      const data = await this.makeRequest(url);
       
       return data.items?.filter((item: any) => item.resultType === 'place')
         .map((item: any) => ({
