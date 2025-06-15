@@ -10,6 +10,7 @@ import { ReportsManager } from '@/components/ReportsManager';
 import { PollingStationsManager } from '@/components/PollingStationsManager';
 import { SettingsLayout } from '@/components/admin-settings/SettingsLayout';
 import { AdminVerificationManager } from '@/components/identity-verification/AdminVerificationManager';
+import { EmailInbox } from '@/components/email-inbox/EmailInbox';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboardData';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,8 @@ export const EnhancedAdminDashboard: React.FC = () => {
         );
       case 'users':
         return <UserManagement />;
+      case 'inbox':
+        return <EmailInbox />;
       case 'communications':
         return <CommunicationsManager />;
       case 'verification':

@@ -12,7 +12,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Settings, Shield, Database, Bell, Mail, Users, Key, Phone, BarChart3 } from 'lucide-react';
+import { Settings, Shield, Database, Bell, Mail, Users, Key, Phone, BarChart3, Inbox } from 'lucide-react';
 import { SettingsSection } from './useSettingsNavigation';
 
 interface AdminSidebarProps {
@@ -56,6 +56,12 @@ const settingsSections = [
     label: 'Communications',
     icon: Mail,
     description: 'Email and SMS provider settings'
+  },
+  {
+    id: 'email-inbox' as const,
+    label: 'Email Inbox',
+    icon: Inbox,
+    description: 'Manage email accounts and messages'
   },
   {
     id: 'security' as const,
