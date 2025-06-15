@@ -12,6 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { encryptionService } from '@/components/encryption/EncryptionService';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddressInput } from '@/components/address/AddressInput';
+import { JAMAICAN_PARISHES } from '@/services/hereMapsService';
 
 export const ObserverDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -24,7 +27,12 @@ export const ObserverDashboard: React.FC = () => {
     name: user?.name || '',
     phoneNumber: user?.phoneNumber || '',
     assignedStation: user?.assignedStation || '',
-    // Add more fields as needed
+    parish: user?.parish || '',
+    address: user?.address || '',
+    bankName: user?.bankName || '',
+    bankAccountNumber: user?.bankAccountNumber || '',
+    bankRoutingNumber: user?.bankRoutingNumber || '',
+    trn: user?.trn || '',
   });
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -47,6 +55,12 @@ export const ObserverDashboard: React.FC = () => {
         name: user.name || '',
         phoneNumber: user.phoneNumber || '',
         assignedStation: user.assignedStation || '',
+        parish: user.parish || '',
+        address: user.address || '',
+        bankName: user.bankName || '',
+        bankAccountNumber: user.bankAccountNumber || '',
+        bankRoutingNumber: user.bankRoutingNumber || '',
+        trn: user.trn || '',
       });
     }
   }, [user, showProfileEdit]);
@@ -116,27 +130,56 @@ export const ObserverDashboard: React.FC = () => {
     if (profileError) setProfileError(null);
   };
 
+  const handleProfileAddress = (address: string) => {
+    setProfileForm((prev) => ({ ...prev, address }));
+    if (profileError) setProfileError(null);
+  };
+
+  const handleProfileAddressSelect = (addressData: any) => {
+    if (addressData.address?.state && JAMAICAN_PARISHES.includes(addressData.address.state)) {
+      setProfileForm((prev) => ({
+        ...prev,
+        address: addressData.address.label,
+        parish: addressData.address.state
+      }));
+    } else {
+      setProfileForm((prev) => ({ ...prev, address: addressData.address.label }));
+    }
+    if (profileError) setProfileError(null);
+  };
+
+  const validateProfileForm = () => {
+    if (!profileForm.name.trim()) return 'Name is required';
+    if (profileForm.trn && !/^\d{9}$/.test(profileForm.trn.replace(/\s/g, ''))) {
+      return 'TRN must be 9 digits';
+    }
+    return null;
+  };
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
     setProfileLoading(true);
     setProfileError(null);
-    
     try {
-      // Encrypt sensitive profile data
+      // Encrypt sensitive profile data (phone only for now)
       const encryptedPhone = profileForm.phoneNumber ? 
         await encryptionService.encryptData(
           profileForm.phoneNumber, 
           { user_id: user.id, data_type: 'phone_number' }
         ) : null;
-
       const { error } = await supabase
         .from('profiles')
         .update({
           name: profileForm.name.trim(),
           phone_number: encryptedPhone,
           assigned_station: profileForm.assignedStation.trim() || null,
+          parish: profileForm.parish || null,
+          address: profileForm.address.trim() || null,
+          bank_name: profileForm.bankName.trim() || null,
+          bank_account_number: profileForm.bankAccountNumber.trim() || null,
+          bank_routing_number: profileForm.bankRoutingNumber.trim() || null,
+          trn: profileForm.trn.replace(/\s/g, '') || null,
           encryption_metadata: {
             encrypted_fields: encryptedPhone ? ['phone_number'] : [],
             encryption_timestamp: new Date().toISOString(),
@@ -144,17 +187,12 @@ export const ObserverDashboard: React.FC = () => {
           }
         })
         .eq('id', user.id);
-        
       if (error) throw error;
-      
       toast({ 
         title: 'Profile Updated', 
         description: 'Your profile was updated successfully with enhanced security.' 
       });
-      
       setShowProfileEdit(false);
-      
-      // Refresh user context
       if (typeof window !== 'undefined' && window.location) {
         window.location.reload();
       }
@@ -237,7 +275,7 @@ export const ObserverDashboard: React.FC = () => {
             </Card>
             {/* Profile Edit Modal */}
             <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit}>
-              <DialogContent className="sm:max-w-lg">
+              <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Edit My Profile</DialogTitle>
                 </DialogHeader>
@@ -246,13 +284,14 @@ export const ObserverDashboard: React.FC = () => {
                     <div className="text-red-600 text-sm">{profileError}</div>
                   )}
                   <div className="space-y-2">
-                    <Label htmlFor="profile-name">Name</Label>
+                    <Label htmlFor="profile-name">Full Name *</Label>
                     <Input
                       id="profile-name"
                       value={profileForm.name}
                       onChange={(e) => handleProfileInput('name', e.target.value)}
                       disabled={profileLoading}
                       required
+                      placeholder="Enter full name"
                     />
                   </div>
                   <div className="space-y-2">
@@ -266,6 +305,37 @@ export const ObserverDashboard: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="profile-parish">Parish</Label>
+                    <Select
+                      value={profileForm.parish}
+                      onValueChange={(value) => handleProfileInput('parish', value)}
+                      disabled={profileLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select parish" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">No parish selected</SelectItem>
+                        {JAMAICAN_PARISHES.map((parish) => (
+                          <SelectItem key={parish} value={parish}>
+                            {parish}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <AddressInput
+                      label="Address"
+                      value={profileForm.address}
+                      onChange={handleProfileAddress}
+                      onAddressSelect={handleProfileAddressSelect}
+                      disabled={profileLoading}
+                      placeholder="Enter full address in Jamaica"
+                      showCoordinates={false}
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="profile-station">Assigned Station</Label>
                     <Input
                       id="profile-station"
@@ -273,6 +343,47 @@ export const ObserverDashboard: React.FC = () => {
                       onChange={(e) => handleProfileInput('assignedStation', e.target.value)}
                       disabled={profileLoading}
                       placeholder="Station name or code"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-bank-name">Bank Name</Label>
+                    <Input
+                      id="profile-bank-name"
+                      value={profileForm.bankName}
+                      onChange={(e) => handleProfileInput('bankName', e.target.value)}
+                      disabled={profileLoading}
+                      placeholder="Bank name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-bank-account">Account Number</Label>
+                    <Input
+                      id="profile-bank-account"
+                      value={profileForm.bankAccountNumber}
+                      onChange={(e) => handleProfileInput('bankAccountNumber', e.target.value)}
+                      disabled={profileLoading}
+                      placeholder="Account number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-bank-routing">Routing Number</Label>
+                    <Input
+                      id="profile-bank-routing"
+                      value={profileForm.bankRoutingNumber}
+                      onChange={(e) => handleProfileInput('bankRoutingNumber', e.target.value)}
+                      disabled={profileLoading}
+                      placeholder="Routing number"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="profile-trn">TRN (Tax Registration Number)</Label>
+                    <Input
+                      id="profile-trn"
+                      value={profileForm.trn}
+                      onChange={(e) => handleProfileInput('trn', e.target.value)}
+                      disabled={profileLoading}
+                      placeholder="9-digit TRN"
+                      maxLength={9}
                     />
                   </div>
                   <div className="flex justify-end gap-2 pt-2">

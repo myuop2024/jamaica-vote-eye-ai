@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Users, UserPlus, Settings as SettingsIcon, Save } from 'lucide-react';
 import { useUserSettings } from './users/useUserSettings';
+import { ProfileFieldTemplateManager } from './ProfileFieldTemplateManager';
 
 export const UserSettings: React.FC = () => {
   const {
@@ -265,6 +265,8 @@ export const UserSettings: React.FC = () => {
           {isSaving ? 'Saving...' : 'Save User Settings'}
         </Button>
       </div>
+
+      <ProfileFieldTemplateManager />
     </div>
   );
 };
