@@ -72,7 +72,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
             <>
               <Send className="w-4 h-4 mr-2" />
               Send Campaign
-            <//>
+            </>
           )}
         </Button>
       </CardContent>
