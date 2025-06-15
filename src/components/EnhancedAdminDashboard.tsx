@@ -31,6 +31,10 @@ export const EnhancedAdminDashboard: React.FC = () => {
     setActiveSection('settings');
   };
 
+  const handleBackToDashboard = () => {
+    setActiveSection('overview');
+  };
+
   const renderContent = () => {
     if (statsError || activityError) {
       return (
@@ -76,7 +80,7 @@ export const EnhancedAdminDashboard: React.FC = () => {
       case 'google-sheets':
         return <GoogleSheetsManager />;
       case 'settings':
-        return <SettingsLayout />;
+        return <SettingsLayout onBackToDashboard={handleBackToDashboard} />;
       default:
         return (
           <DashboardOverview
