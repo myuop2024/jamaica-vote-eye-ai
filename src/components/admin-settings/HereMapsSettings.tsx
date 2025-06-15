@@ -36,34 +36,18 @@ export const HereMapsSettings: React.FC = () => {
   const loadConfig = async () => {
     setIsLoading(true);
     try {
-      // Use raw SQL query to avoid TypeScript issues with new table
-      const { data, error } = await supabase.rpc('exec', {
-        sql: `SELECT value FROM public.system_settings WHERE key = 'here_maps_config'`
-      });
+      // Query the system_settings table directly
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'here_maps_config')
+        .single();
 
-      if (error) {
-        // If the function doesn't exist, try direct query
-        const directQuery = await supabase
-          .from('system_settings' as any)
-          .select('value')
-          .eq('key', 'here_maps_config')
-          .single();
-
-        if (directQuery.error && directQuery.error.code !== 'PGRST116') {
-          throw directQuery.error;
-        }
-
-        if (directQuery.data?.value) {
-          const savedConfig = directQuery.data.value as HereMapsConfig;
-          setConfig(savedConfig);
-          
-          // Initialize service if API key exists
-          if (savedConfig.apiKey) {
-            initializeHereMapsService(savedConfig.apiKey);
-          }
-        }
-      } else if (data && data.length > 0) {
-        const savedConfig = data[0].value as HereMapsConfig;
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading HERE Maps config:', error);
+        setError(error.message);
+      } else if (data?.value) {
+        const savedConfig = data.value as HereMapsConfig;
         setConfig(savedConfig);
         
         // Initialize service if API key exists
@@ -96,7 +80,7 @@ export const HereMapsSettings: React.FC = () => {
       };
 
       const { error } = await supabase
-        .from('system_settings' as any)
+        .from('system_settings')
         .upsert({
           key: 'here_maps_config',
           value: configToSave,
