@@ -82,7 +82,6 @@ export const IdentityVerificationCenter: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'verified':
-      case 'success':
         return <Badge className="bg-green-100 text-green-800">Verified</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
@@ -100,7 +99,6 @@ export const IdentityVerificationCenter: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'verified':
-      case 'success':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'pending':
         return <Clock className="w-5 h-5 text-yellow-500" />;
@@ -124,7 +122,7 @@ export const IdentityVerificationCenter: React.FC = () => {
 
   const hasActiveVerification = userVerifications.some(v => v.status === 'pending');
   const latestVerification = userVerifications[0];
-  const hasVerifiedStatus = userVerifications.some(v => v.status === 'verified' || v.status === 'success');
+  const hasVerifiedStatus = userVerifications.some(v => v.status === 'verified');
 
   return (
     <div className="space-y-6">
