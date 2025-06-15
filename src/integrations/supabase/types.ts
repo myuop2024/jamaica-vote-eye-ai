@@ -69,6 +69,7 @@ export type Database = {
           communication_type: Database["public"]["Enums"]["communication_type"]
           created_at: string
           delivered_count: number | null
+          encryption_metadata: Json | null
           failed_count: number | null
           id: string
           message_content: string
@@ -85,6 +86,7 @@ export type Database = {
           communication_type?: Database["public"]["Enums"]["communication_type"]
           created_at?: string
           delivered_count?: number | null
+          encryption_metadata?: Json | null
           failed_count?: number | null
           id?: string
           message_content: string
@@ -101,6 +103,7 @@ export type Database = {
           communication_type?: Database["public"]["Enums"]["communication_type"]
           created_at?: string
           delivered_count?: number | null
+          encryption_metadata?: Json | null
           failed_count?: number | null
           id?: string
           message_content?: string
@@ -121,6 +124,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_classification: {
+        Row: {
+          access_control_policy: Json | null
+          audit_requirements: Json | null
+          classification_level: string
+          column_name: string
+          created_at: string
+          encryption_required: boolean
+          id: string
+          retention_period_days: number | null
+          table_name: string
+        }
+        Insert: {
+          access_control_policy?: Json | null
+          audit_requirements?: Json | null
+          classification_level: string
+          column_name: string
+          created_at?: string
+          encryption_required?: boolean
+          id?: string
+          retention_period_days?: number | null
+          table_name: string
+        }
+        Update: {
+          access_control_policy?: Json | null
+          audit_requirements?: Json | null
+          classification_level?: string
+          column_name?: string
+          created_at?: string
+          encryption_required?: boolean
+          id?: string
+          retention_period_days?: number | null
+          table_name?: string
+        }
+        Relationships: []
       }
       didit_audit_log: {
         Row: {
@@ -234,6 +273,7 @@ export type Database = {
           didit_response: Json | null
           didit_session_id: string | null
           document_type: Database["public"]["Enums"]["document_type"] | null
+          encryption_metadata: Json | null
           error_message: string | null
           expires_at: string | null
           extracted_data: Json | null
@@ -251,6 +291,7 @@ export type Database = {
           didit_response?: Json | null
           didit_session_id?: string | null
           document_type?: Database["public"]["Enums"]["document_type"] | null
+          encryption_metadata?: Json | null
           error_message?: string | null
           expires_at?: string | null
           extracted_data?: Json | null
@@ -268,6 +309,7 @@ export type Database = {
           didit_response?: Json | null
           didit_session_id?: string | null
           document_type?: Database["public"]["Enums"]["document_type"] | null
+          encryption_metadata?: Json | null
           error_message?: string | null
           expires_at?: string | null
           extracted_data?: Json | null
@@ -446,10 +488,98 @@ export type Database = {
           },
         ]
       }
+      encryption_audit_log: {
+        Row: {
+          created_at: string
+          encryption_algorithm: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          key_version: number | null
+          metadata: Json | null
+          operation_type: string
+          resource_id: string | null
+          resource_type: string
+          risk_score: number | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          encryption_algorithm?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          key_version?: number | null
+          metadata?: Json | null
+          operation_type: string
+          resource_id?: string | null
+          resource_type: string
+          risk_score?: number | null
+          success: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          encryption_algorithm?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          key_version?: number | null
+          metadata?: Json | null
+          operation_type?: string
+          resource_id?: string | null
+          resource_type?: string
+          risk_score?: number | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      encryption_config: {
+        Row: {
+          algorithm: string
+          compliance_level: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          key_name: string
+          key_status: string
+          key_version: number
+          metadata: Json | null
+        }
+        Insert: {
+          algorithm?: string
+          compliance_level?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          key_name: string
+          key_status?: string
+          key_version?: number
+          metadata?: Json | null
+        }
+        Update: {
+          algorithm?: string
+          compliance_level?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          key_name?: string
+          key_status?: string
+          key_version?: number
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       observation_reports: {
         Row: {
           attachments: Json | null
           created_at: string
+          encryption_metadata: Json | null
           id: string
           location_data: Json | null
           observer_id: string
@@ -461,6 +591,7 @@ export type Database = {
         Insert: {
           attachments?: Json | null
           created_at?: string
+          encryption_metadata?: Json | null
           id?: string
           location_data?: Json | null
           observer_id: string
@@ -472,6 +603,7 @@ export type Database = {
         Update: {
           attachments?: Json | null
           created_at?: string
+          encryption_metadata?: Json | null
           id?: string
           location_data?: Json | null
           observer_id?: string
@@ -540,6 +672,7 @@ export type Database = {
             | Database["public"]["Enums"]["verification_result"]
             | null
           email: string
+          encryption_metadata: Json | null
           id: string
           last_login: string | null
           name: string
@@ -565,6 +698,7 @@ export type Database = {
             | Database["public"]["Enums"]["verification_result"]
             | null
           email: string
+          encryption_metadata?: Json | null
           id: string
           last_login?: string | null
           name: string
@@ -590,6 +724,7 @@ export type Database = {
             | Database["public"]["Enums"]["verification_result"]
             | null
           email?: string
+          encryption_metadata?: Json | null
           id?: string
           last_login?: string | null
           name?: string
@@ -601,6 +736,51 @@ export type Database = {
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
             | null
+        }
+        Relationships: []
+      }
+      secure_sessions: {
+        Row: {
+          created_at: string
+          device_fingerprint: string | null
+          encryption_level: string
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          last_activity: string
+          mfa_verified: boolean
+          risk_assessment: Json | null
+          session_token_hash: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint?: string | null
+          encryption_level?: string
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string
+          mfa_verified?: boolean
+          risk_assessment?: Json | null
+          session_token_hash: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string | null
+          encryption_level?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          last_activity?: string
+          mfa_verified?: boolean
+          risk_assessment?: Json | null
+          session_token_hash?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -678,6 +858,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_security: {
+        Row: {
+          allowed_ips: Json | null
+          compliance_requirements: Json | null
+          created_at: string
+          current_key_version: number
+          id: string
+          key_rotation_interval: number
+          mtls_required: boolean
+          rate_limit_per_minute: number
+          signing_algorithm: string
+          updated_at: string
+          webhook_name: string
+        }
+        Insert: {
+          allowed_ips?: Json | null
+          compliance_requirements?: Json | null
+          created_at?: string
+          current_key_version?: number
+          id?: string
+          key_rotation_interval?: number
+          mtls_required?: boolean
+          rate_limit_per_minute?: number
+          signing_algorithm?: string
+          updated_at?: string
+          webhook_name: string
+        }
+        Update: {
+          allowed_ips?: Json | null
+          compliance_requirements?: Json | null
+          created_at?: string
+          current_key_version?: number
+          id?: string
+          key_rotation_interval?: number
+          mtls_required?: boolean
+          rate_limit_per_minute?: number
+          signing_algorithm?: string
+          updated_at?: string
+          webhook_name?: string
+        }
+        Relationships: []
       }
     }
     Views: {

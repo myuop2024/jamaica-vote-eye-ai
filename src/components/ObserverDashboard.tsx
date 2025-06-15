@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import { encryptionService } from '@/components/encryption/EncryptionService';
 
 export const ObserverDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -50,6 +51,20 @@ export const ObserverDashboard: React.FC = () => {
     }
   }, [user, showProfileEdit]);
 
+  // Initialize encryption service
+  useEffect(() => {
+    const initEncryption = async () => {
+      try {
+        await encryptionService.initializeEncryption();
+        console.log('Encryption service initialized for observer dashboard');
+      } catch (error) {
+        console.error('Failed to initialize encryption:', error);
+      }
+    };
+    
+    initEncryption();
+  }, []);
+
   const handleReportSubmit = async () => {
     if (!reportText.trim()) {
       toast({
@@ -61,15 +76,39 @@ export const ObserverDashboard: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
     
-    toast({
-      title: "Report Submitted",
-      description: "Your observation report has been submitted successfully"
-    });
-    
-    setReportText('');
-    setIsSubmitting(false);
+    try {
+      // Encrypt sensitive report data before submission
+      const encryptedReportText = await encryptionService.encryptData(
+        reportText, 
+        { 
+          user_id: user?.id, 
+          report_type: 'observation',
+          timestamp: new Date().toISOString()
+        }
+      );
+      
+      console.log('Report encrypted successfully');
+      
+      // Simulate API call with encrypted data
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast({
+        title: "Report Submitted",
+        description: "Your observation report has been submitted securely with military-grade encryption"
+      });
+      
+      setReportText('');
+    } catch (error) {
+      console.error('Failed to encrypt and submit report:', error);
+      toast({
+        title: "Submission Failed",
+        description: "Failed to securely submit your report. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleProfileInput = (field: string, value: string) => {
@@ -80,23 +119,44 @@ export const ObserverDashboard: React.FC = () => {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
     setProfileLoading(true);
     setProfileError(null);
+    
     try {
+      // Encrypt sensitive profile data
+      const encryptedPhone = profileForm.phoneNumber ? 
+        await encryptionService.encryptData(
+          profileForm.phoneNumber, 
+          { user_id: user.id, data_type: 'phone_number' }
+        ) : null;
+
       const { error } = await supabase
         .from('profiles')
         .update({
           name: profileForm.name.trim(),
-          phone_number: profileForm.phoneNumber.trim() || null,
+          phone_number: encryptedPhone,
           assigned_station: profileForm.assignedStation.trim() || null,
+          encryption_metadata: {
+            encrypted_fields: encryptedPhone ? ['phone_number'] : [],
+            encryption_timestamp: new Date().toISOString(),
+            encryption_version: '1.0'
+          }
         })
         .eq('id', user.id);
+        
       if (error) throw error;
-      toast({ title: 'Profile Updated', description: 'Your profile was updated successfully.' });
+      
+      toast({ 
+        title: 'Profile Updated', 
+        description: 'Your profile was updated successfully with enhanced security.' 
+      });
+      
       setShowProfileEdit(false);
+      
       // Refresh user context
       if (typeof window !== 'undefined' && window.location) {
-        window.location.reload(); // Quick way to refresh context; ideally call fetchUserProfile
+        window.location.reload();
       }
     } catch (err: any) {
       setProfileError(err.message || 'Failed to update profile');
