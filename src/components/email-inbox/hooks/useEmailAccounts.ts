@@ -54,10 +54,16 @@ export const useEmailAccounts = () => {
         throw new Error('User not authenticated');
       }
 
-      // Create Gmail OAuth URL
+      // Use the hardcoded client ID that should match your Google Cloud Console setup
       const clientId = '367771538830-8u6rjgvl06ihvam6kvkue9fvi7h7jthl.apps.googleusercontent.com';
       const redirectUri = `${window.location.origin}/auth/gmail/callback`;
       const scope = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email';
+      
+      console.log('Gmail OAuth configuration:', {
+        clientId,
+        redirectUri,
+        scope
+      });
       
       const oauthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       oauthUrl.searchParams.set('client_id', clientId);
@@ -68,12 +74,19 @@ export const useEmailAccounts = () => {
       oauthUrl.searchParams.set('prompt', 'consent');
       oauthUrl.searchParams.set('state', user.id);
 
+      console.log('Opening OAuth URL:', oauthUrl.toString());
+
       // Open OAuth popup
       const popup = window.open(
         oauthUrl.toString(),
         'gmail-oauth',
         'width=500,height=600,scrollbars=yes,resizable=yes'
       );
+
+      // Check if popup was blocked
+      if (!popup) {
+        throw new Error('Popup was blocked. Please allow popups for this site and try again.');
+      }
 
       // Listen for the OAuth callback
       const checkClosed = setInterval(() => {
@@ -90,6 +103,8 @@ export const useEmailAccounts = () => {
       const messageListener = (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return;
         
+        console.log('Received message from popup:', event.data);
+        
         if (event.data.type === 'GMAIL_OAUTH_SUCCESS') {
           popup?.close();
           toast({
@@ -100,6 +115,7 @@ export const useEmailAccounts = () => {
           window.removeEventListener('message', messageListener);
         } else if (event.data.type === 'GMAIL_OAUTH_ERROR') {
           popup?.close();
+          console.error('OAuth error:', event.data.error);
           toast({
             title: "Error",
             description: event.data.error || "Failed to connect Gmail account",

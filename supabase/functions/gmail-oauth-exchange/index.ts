@@ -26,13 +26,23 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Missing required parameters');
     }
 
-    // Gmail OAuth credentials
-    const clientId = '367771538830-8u6rjgvl06ihvam6kvkue9fvi7h7jthl.apps.googleusercontent.com';
+    // Gmail OAuth credentials - using environment variables
+    const clientId = Deno.env.get('GMAIL_CLIENT_ID');
     const clientSecret = Deno.env.get('GMAIL_CLIENT_SECRET');
 
-    if (!clientSecret) {
-      throw new Error('Gmail client secret not configured');
+    if (!clientId || !clientSecret) {
+      console.error('Missing Gmail OAuth credentials:', { 
+        hasClientId: !!clientId, 
+        hasClientSecret: !!clientSecret 
+      });
+      throw new Error('Gmail OAuth credentials not configured properly');
     }
+
+    console.log('OAuth exchange attempt:', {
+      redirectUri,
+      clientId: clientId.substring(0, 10) + '...',
+      codeLength: code.length
+    });
 
     // Exchange authorization code for access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -51,6 +61,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
+      console.error('Token exchange failed:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorData
+      });
       throw new Error(`Token exchange failed: ${errorData}`);
     }
 
@@ -64,6 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!userInfoResponse.ok) {
+      console.error('Failed to get user info:', userInfoResponse.status);
       throw new Error('Failed to get user info');
     }
 
@@ -77,6 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!gmailTestResponse.ok) {
+      console.error('Failed to access Gmail API:', gmailTestResponse.status);
       throw new Error('Failed to access Gmail API - insufficient permissions');
     }
 
@@ -106,6 +123,8 @@ const handler = async (req: Request): Promise<Response> => {
       console.error('Database error:', dbError);
       throw dbError;
     }
+
+    console.log('Gmail account connected successfully:', userInfo.email);
 
     // Close the popup window by posting a message
     const responseHtml = `
