@@ -38,10 +38,13 @@ export const useTwilioSettings = () => {
 
       if (configData && configData.length > 0) {
         const config = configData.reduce((acc, item) => {
-          // Fix the TypeScript error by safely accessing the value property
-          const value = typeof item.setting_value === 'object' && item.setting_value !== null 
-            ? (item.setting_value as any).value 
-            : item.setting_value;
+          // Safely extract the value from the Json type
+          let value: any;
+          if (typeof item.setting_value === 'object' && item.setting_value !== null && 'value' in item.setting_value) {
+            value = (item.setting_value as any).value;
+          } else {
+            value = item.setting_value;
+          }
           acc[item.setting_key] = value;
           return acc;
         }, {} as Record<string, any>);
