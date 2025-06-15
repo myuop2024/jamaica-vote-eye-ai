@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +32,7 @@ export const AdminVerificationManager: React.FC = () => {
     pending: 0,
     failed: 0
   });
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     fetchVerifications();
@@ -132,6 +132,29 @@ export const AdminVerificationManager: React.FC = () => {
         return <XCircle className="w-4 h-4 text-red-600" />;
       default:
         return <Clock className="w-4 h-4 text-yellow-600" />;
+    }
+  };
+
+  const handleResetAttempts = async (userId: string) => {
+    setIsResetting(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('didit_verifications')
+        .delete()
+        .eq('user_id', userId);
+      if (deleteError) throw deleteError;
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ verification_status: 'pending' })
+        .eq('id', userId);
+      if (profileError) throw profileError;
+      toast({ title: 'Attempts Reset', description: 'Verification attempts have been reset. The user can try again.' });
+      setIsViewDialogOpen(false);
+      fetchVerifications();
+    } catch (err: any) {
+      toast({ title: 'Reset Error', description: err.message || 'Failed to reset attempts', variant: 'destructive' });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -383,6 +406,15 @@ export const AdminVerificationManager: React.FC = () => {
                     <strong>Expires:</strong> {new Date(selectedVerification.expires_at).toLocaleString()}
                   </div>
                 )}
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button
+                  variant="destructive"
+                  onClick={() => handleResetAttempts(selectedVerification.user_id)}
+                  disabled={isResetting}
+                >
+                  {isResetting ? 'Resetting...' : 'Reset Attempts'}
+                </Button>
               </div>
             </div>
           )}
