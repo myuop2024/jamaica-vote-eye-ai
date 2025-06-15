@@ -1,111 +1,151 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { Loader2, User, Mail, Phone, MapPin, Building, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddUserDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onUserAdded: () => void;
+  onUserAdded?: () => void;
 }
+
+const JAMAICAN_PARISHES = [
+  'Clarendon',
+  'Hanover',
+  'Kingston',
+  'Manchester',
+  'Portland',
+  'Saint Andrew',
+  'Saint Ann',
+  'Saint Catherine',
+  'Saint Elizabeth',
+  'Saint James',
+  'Saint Mary',
+  'Saint Thomas',
+  'Trelawny',
+  'Westmoreland'
+];
 
 export const AddUserDialog: React.FC<AddUserDialogProps> = ({
   isOpen,
   onClose,
   onUserAdded
 }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'observer' as 'observer' | 'admin',
-    phone_number: '',
-    assigned_station: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const [formData, setFormData] = useState({
+    email: '',
+    name: '',
+    phoneNumber: '',
+    role: 'observer',
+    assignedStation: '',
+    parish: '',
+    address: '',
+    bankName: '',
+    bankAccountNumber: '',
+    bankRoutingNumber: '',
+    trn: ''
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError(null);
+  };
+
+  const validateForm = () => {
+    if (!formData.email.trim()) return 'Email is required';
+    if (!formData.name.trim()) return 'Name is required';
+    if (!formData.email.includes('@')) return 'Valid email is required';
+    
+    // Validate TRN format if provided (should be 9 digits)
+    if (formData.trn && !/^\d{9}$/.test(formData.trn.replace(/\s/g, ''))) {
+      return 'TRN must be 9 digits';
+    }
+    
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsLoading(true);
-
-    // Validation
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
-      setError('Name, email, and password are required');
-      setIsLoading(false);
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      setIsLoading(false);
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address');
-      setIsLoading(false);
-      return;
-    }
+    setError(null);
 
     try {
-      // Use regular signup instead of admin.createUser
-      const { data, error: signupError } = await supabase.auth.signUp({
+      // Create the user account
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email.trim(),
-        password: formData.password,
+        password: Math.random().toString(36).slice(-12), // Temporary password
         options: {
           data: {
             name: formData.name.trim(),
             role: formData.role,
-            phone_number: formData.phone_number.trim() || null,
-            assigned_station: formData.assigned_station.trim() || null
-          },
-          emailRedirectTo: `${window.location.origin}/`
+            phone_number: formData.phoneNumber.trim() || null
+          }
         }
       });
 
-      if (signupError) {
-        console.error('User creation error:', signupError);
-        if (signupError.message.includes('already registered')) {
-          setError('A user with this email already exists');
-        } else {
-          setError(signupError.message || 'Failed to create user');
-        }
-        return;
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Update the profile with additional information
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            assigned_station: formData.assignedStation.trim() || null,
+            parish: formData.parish || null,
+            address: formData.address.trim() || null,
+            bank_name: formData.bankName.trim() || null,
+            bank_account_number: formData.bankAccountNumber.trim() || null,
+            bank_routing_number: formData.bankRoutingNumber.trim() || null,
+            trn: formData.trn.replace(/\s/g, '') || null
+          })
+          .eq('id', authData.user.id);
+
+        if (profileError) throw profileError;
       }
 
-      if (data.user) {
-        toast({
-          title: "User Created Successfully",
-          description: `${formData.role === 'admin' ? 'Admin' : 'Observer'} account created for ${formData.name}. They will need to verify their email.`
-        });
+      toast({
+        title: 'Success',
+        description: 'User created successfully. They will receive an email to set their password.',
+      });
 
-        // Reset form and close dialog
-        setFormData({
-          name: '',
-          email: '',
-          password: '',
-          role: 'observer',
-          phone_number: '',
-          assigned_station: ''
-        });
-        onUserAdded();
-        onClose();
-      }
-    } catch (err: any) {
-      console.error('Unexpected error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      // Reset form
+      setFormData({
+        email: '',
+        name: '',
+        phoneNumber: '',
+        role: 'observer',
+        assignedStation: '',
+        parish: '',
+        address: '',
+        bankName: '',
+        bankAccountNumber: '',
+        bankRoutingNumber: '',
+        trn: ''
+      });
+
+      if (onUserAdded) onUserAdded();
+      onClose();
+
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      setError(error.message || 'Failed to create user');
     } finally {
       setIsLoading(false);
     }
@@ -114,147 +154,227 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
   const handleClose = () => {
     if (!isLoading) {
       setFormData({
-        name: '',
         email: '',
-        password: '',
+        name: '',
+        phoneNumber: '',
         role: 'observer',
-        phone_number: '',
-        assigned_station: ''
+        assignedStation: '',
+        parish: '',
+        address: '',
+        bankName: '',
+        bankAccountNumber: '',
+        bankRoutingNumber: '',
+        trn: ''
       });
-      setError('');
+      setError(null);
       onClose();
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New User</DialogTitle>
-          <DialogDescription>
-            Create a new observer or admin account
-          </DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Add New User
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="add-name">Full Name *</Label>
-            <Input
-              id="add-name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Enter full name"
-              disabled={isLoading}
-              required
-            />
-          </div>
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Basic Information
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Enter full name"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="add-email">Email Address *</Label>
-            <Input
-              id="add-email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="Enter email address"
-              disabled={isLoading}
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="user@example.com"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="add-password">Password * (minimum 6 characters)</Label>
-            <div className="relative">
-              <Input
-                id="add-password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Enter password"
-                disabled={isLoading}
-                required
-                minLength={6}
-                className="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </Button>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="+1 876-XXX-XXXX"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => handleInputChange('role', value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="observer">Observer</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="add-role">Role *</Label>
-            <Select 
-              value={formData.role} 
-              onValueChange={(value: 'observer' | 'admin') => setFormData(prev => ({ ...prev, role: value }))}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="observer">Observer</SelectItem>
-                <SelectItem value="admin">Administrator</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Location Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              Location Information
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="parish">Parish</Label>
+                <Select
+                  value={formData.parish}
+                  onValueChange={(value) => handleInputChange('parish', value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select parish" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {JAMAICAN_PARISHES.map((parish) => (
+                      <SelectItem key={parish} value={parish}>
+                        {parish}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="assignedStation">Assigned Station</Label>
+                <Input
+                  id="assignedStation"
+                  value={formData.assignedStation}
+                  onChange={(e) => handleInputChange('assignedStation', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Station name or code"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                disabled={isLoading}
+                placeholder="Full address"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="add-phone">Phone Number</Label>
-            <Input
-              id="add-phone"
-              type="tel"
-              value={formData.phone_number}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
-              placeholder="Enter phone number (optional)"
-              disabled={isLoading}
-            />
+          {/* Banking Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <CreditCard className="w-4 h-4" />
+              Banking Information
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bankName">Bank Name</Label>
+                <Input
+                  id="bankName"
+                  value={formData.bankName}
+                  onChange={(e) => handleInputChange('bankName', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Bank name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bankAccountNumber">Account Number</Label>
+                <Input
+                  id="bankAccountNumber"
+                  value={formData.bankAccountNumber}
+                  onChange={(e) => handleInputChange('bankAccountNumber', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Account number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bankRoutingNumber">Routing Number</Label>
+                <Input
+                  id="bankRoutingNumber"
+                  value={formData.bankRoutingNumber}
+                  onChange={(e) => handleInputChange('bankRoutingNumber', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Routing number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="trn">TRN (Tax Registration Number)</Label>
+                <Input
+                  id="trn"
+                  value={formData.trn}
+                  onChange={(e) => handleInputChange('trn', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="9-digit TRN"
+                  maxLength={9}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="add-station">Assigned Station</Label>
-            <Input
-              id="add-station"
-              value={formData.assigned_station}
-              onChange={(e) => setFormData(prev => ({ ...prev, assigned_station: e.target.value }))}
-              placeholder="Enter polling station (optional)"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="flex gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
               disabled={isLoading}
-              className="flex-1"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700"
             >
               {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Creating...
-                </div>
+                </>
               ) : (
                 'Create User'
               )}

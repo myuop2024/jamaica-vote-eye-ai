@@ -12,8 +12,10 @@ import {
   Calendar, 
   Clock, 
   Shield,
-  FileText,
-  MessageSquare
+  MessageSquare,
+  CreditCard,
+  Building,
+  Hash
 } from 'lucide-react';
 
 interface UserProfile {
@@ -24,6 +26,12 @@ interface UserProfile {
   verification_status: 'pending' | 'verified' | 'rejected';
   phone_number?: string;
   assigned_station?: string;
+  parish?: string;
+  address?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_routing_number?: string;
+  trn?: string;
   created_at: string;
   last_login?: string;
 }
@@ -60,9 +68,15 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
       : 'bg-blue-100 text-blue-800 border-blue-200';
   };
 
+  const maskBankAccount = (accountNumber?: string) => {
+    if (!accountNumber) return null;
+    if (accountNumber.length <= 4) return accountNumber;
+    return `****${accountNumber.slice(-4)}`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
@@ -97,32 +111,66 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
 
           <Separator />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Contact Information */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900">Contact Information</h4>
+              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Contact Information
+              </h4>
               
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Mail className="w-4 h-4 text-gray-400" />
+                <div className="flex items-start gap-3">
+                  <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-sm">{user.email}</p>
+                    <p className="text-sm break-all">{user.email}</p>
                   </div>
                 </div>
 
                 {user.phone_number && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-4 h-4 text-gray-400" />
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-500">Phone</p>
                       <p className="text-sm">{user.phone_number}</p>
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Location Information */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Location Details
+              </h4>
+              
+              <div className="space-y-3">
+                {user.parish && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Parish</p>
+                      <p className="text-sm">{user.parish}</p>
+                    </div>
+                  </div>
+                )}
+
+                {user.address && (
+                  <div className="flex items-start gap-3">
+                    <Building className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Address</p>
+                      <p className="text-sm">{user.address}</p>
+                    </div>
+                  </div>
+                )}
 
                 {user.assigned_station && (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-4 h-4 text-gray-400" />
+                  <div className="flex items-start gap-3">
+                    <Building className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-500">Assigned Station</p>
                       <p className="text-sm">{user.assigned_station}</p>
@@ -132,12 +180,16 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
               </div>
             </div>
 
+            {/* Account Information */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900">Account Information</h4>
+              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Account Information
+              </h4>
               
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-gray-400" />
+                <div className="flex items-start gap-3">
+                  <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-gray-500">Joined</p>
                     <p className="text-sm">{new Date(user.created_at).toLocaleDateString()}</p>
@@ -145,17 +197,72 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
                 </div>
 
                 {user.last_login && (
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 text-gray-400" />
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-500">Last Login</p>
                       <p className="text-sm">{new Date(user.last_login).toLocaleDateString()}</p>
                     </div>
                   </div>
                 )}
+
+                {user.trn && (
+                  <div className="flex items-start gap-3">
+                    <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">TRN</p>
+                      <p className="text-sm font-mono">{user.trn}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Banking Information Section */}
+          {(user.bank_name || user.bank_account_number || user.bank_routing_number) && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  Banking Information
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {user.bank_name && (
+                    <div className="flex items-start gap-3">
+                      <CreditCard className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Bank Name</p>
+                        <p className="text-sm">{user.bank_name}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {user.bank_account_number && (
+                    <div className="flex items-start gap-3">
+                      <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Account Number</p>
+                        <p className="text-sm font-mono">{maskBankAccount(user.bank_account_number)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {user.bank_routing_number && (
+                    <div className="flex items-start gap-3">
+                      <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Routing Number</p>
+                        <p className="text-sm font-mono">{user.bank_routing_number}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           <Separator />
 

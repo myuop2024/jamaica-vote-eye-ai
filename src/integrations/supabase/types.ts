@@ -528,7 +528,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           assigned_station: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          bank_routing_number: string | null
           created_at: string
           didit_confidence_score: number | null
           didit_verification_date: string | null
@@ -539,15 +543,21 @@ export type Database = {
           id: string
           last_login: string | null
           name: string
+          parish: string | null
           phone_number: string | null
           profile_image: string | null
           role: string
+          trn: string | null
           verification_status:
             | Database["public"]["Enums"]["verification_status"]
             | null
         }
         Insert: {
+          address?: string | null
           assigned_station?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          bank_routing_number?: string | null
           created_at?: string
           didit_confidence_score?: number | null
           didit_verification_date?: string | null
@@ -558,15 +568,21 @@ export type Database = {
           id: string
           last_login?: string | null
           name: string
+          parish?: string | null
           phone_number?: string | null
           profile_image?: string | null
           role: string
+          trn?: string | null
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
             | null
         }
         Update: {
+          address?: string | null
           assigned_station?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          bank_routing_number?: string | null
           created_at?: string
           didit_confidence_score?: number | null
           didit_verification_date?: string | null
@@ -577,9 +593,11 @@ export type Database = {
           id?: string
           last_login?: string | null
           name?: string
+          parish?: string | null
           phone_number?: string | null
           profile_image?: string | null
           role?: string
+          trn?: string | null
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
             | null

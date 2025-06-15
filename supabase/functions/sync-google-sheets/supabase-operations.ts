@@ -1,165 +1,186 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
-import { getSupabaseConfig } from './config.ts';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function fetchReportsData() {
-  const config = getSupabaseConfig();
-  const supabase = createClient(config.url, config.serviceRoleKey);
-  
-  const { data: reports, error } = await supabase
+  const { data, error } = await supabase
     .from('observation_reports')
     .select(`
       id,
       report_text,
-      station_id,
       status,
+      station_id,
+      location_data,
+      attachments,
       created_at,
       updated_at,
-      observer_id,
-      profiles!observer_id(name, email)
+      profiles!observer_id (
+        id,
+        name,
+        email,
+        role
+      )
     `)
     .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Reports fetch error:', error);
-    throw error;
-  }
-  
-  // Flatten the data for Google Sheets
-  return reports?.map(report => ({
-    id: report.id,
-    observer_name: report.profiles?.name || 'Unknown',
-    observer_email: report.profiles?.email || '',
-    report_text: report.report_text,
-    station_id: report.station_id || '',
-    status: report.status,
-    created_at: report.created_at,
-    updated_at: report.updated_at
-  }));
+
+  if (error) throw new Error(`Database error: ${error.message}`);
+
+  return data?.map(report => ({
+    ID: report.id,
+    'Observer Name': report.profiles?.name || 'Unknown',
+    'Observer Email': report.profiles?.email || 'Unknown',
+    'Report Text': report.report_text,
+    'Status': report.status,
+    'Station ID': report.station_id || '',
+    'Location Data': JSON.stringify(report.location_data || {}),
+    'Attachments': JSON.stringify(report.attachments || []),
+    'Created At': report.created_at,
+    'Updated At': report.updated_at
+  })) || [];
 }
 
 export async function fetchObserversData() {
-  const config = getSupabaseConfig();
-  const supabase = createClient(config.url, config.serviceRoleKey);
-  
-  const { data: observers, error } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, email, role, phone_number, assigned_station, verification_status, created_at')
-    .eq('role', 'observer')
+    .select('*')
     .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Observers fetch error:', error);
-    throw error;
-  }
-  
-  return observers;
+
+  if (error) throw new Error(`Database error: ${error.message}`);
+
+  return data?.map(profile => ({
+    ID: profile.id,
+    Name: profile.name,
+    Email: profile.email,
+    Role: profile.role,
+    'Phone Number': profile.phone_number || '',
+    'Verification Status': profile.verification_status,
+    'Assigned Station': profile.assigned_station || '',
+    Parish: profile.parish || '',
+    Address: profile.address || '',
+    'Bank Name': profile.bank_name || '',
+    'Bank Account Number': profile.bank_account_number || '',
+    'Bank Routing Number': profile.bank_routing_number || '',
+    TRN: profile.trn || '',
+    'Profile Image': profile.profile_image || '',
+    'Created At': profile.created_at,
+    'Last Login': profile.last_login || ''
+  })) || [];
 }
 
 export async function fetchCommunicationsData() {
-  const config = getSupabaseConfig();
-  const supabase = createClient(config.url, config.serviceRoleKey);
-  
-  const { data: comms, error } = await supabase
+  const { data, error } = await supabase
     .from('communications')
-    .select('id, campaign_name, message_content, target_audience, status, sent_count, delivered_count, failed_count, created_at, sent_at')
+    .select('*')
     .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Communications fetch error:', error);
-    throw error;
-  }
-  
-  return comms;
+
+  if (error) throw new Error(`Database error: ${error.message}`);
+
+  return data?.map(comm => ({
+    ID: comm.id,
+    'Campaign Name': comm.campaign_name,
+    'Communication Type': comm.communication_type,
+    'Target Audience': comm.target_audience,
+    'Message Content': comm.message_content,
+    Status: comm.status,
+    'Sent Count': comm.sent_count || 0,
+    'Delivered Count': comm.delivered_count || 0,
+    'Failed Count': comm.failed_count || 0,
+    'Target Filter': JSON.stringify(comm.target_filter || {}),
+    'Scheduled At': comm.scheduled_at || '',
+    'Sent At': comm.sent_at || '',
+    'Created At': comm.created_at
+  })) || [];
 }
 
-export async function importDataToSupabase(dataType: string, records: any[]) {
-  const config = getSupabaseConfig();
-  const supabase = createClient(config.url, config.serviceRoleKey);
-  
-  console.log(`Processing ${records.length} records for import to ${dataType}`);
-  
-  let tableName = '';
-  let processedRecords = [];
-  
+export async function importDataToSupabase(dataType: string, records: any[]): Promise<number> {
+  if (!records || records.length === 0) {
+    throw new Error('No data found to import');
+  }
+
+  console.log(`Importing ${records.length} records for ${dataType}`);
+
   switch (dataType) {
-    case 'reports':
-      tableName = 'observation_reports';
-      // Process and validate reports data
-      processedRecords = records
-        .filter(record => record.report_text && record.report_text.trim() !== '')
-        .map(record => ({
-          id: record.id || undefined, // Let database generate if not provided
-          observer_id: record.observer_id || null,
-          report_text: record.report_text,
-          station_id: record.station_id || null,
-          status: record.status || 'submitted',
-          created_at: record.created_at || new Date().toISOString(),
-          updated_at: record.updated_at || new Date().toISOString()
-        }));
-      break;
-      
-    case 'observers':
-      tableName = 'profiles';
-      // Process and validate observers data
-      processedRecords = records
-        .filter(record => record.name && record.name.trim() !== '' && record.email && record.email.trim() !== '')
-        .map(record => ({
-          id: record.id || undefined, // Let database generate if not provided
-          name: record.name,
-          email: record.email,
-          role: record.role || 'observer',
-          phone_number: record.phone_number || null,
-          assigned_station: record.assigned_station || null,
-          verification_status: record.verification_status || 'pending',
-          created_at: record.created_at || new Date().toISOString()
-        }));
-      break;
-      
-    case 'communications':
-      tableName = 'communications';
-      // Process and validate communications data
-      processedRecords = records
-        .filter(record => record.campaign_name && record.campaign_name.trim() !== '' && record.message_content && record.message_content.trim() !== '')
-        .map(record => ({
-          id: record.id || undefined, // Let database generate if not provided
-          campaign_name: record.campaign_name,
-          message_content: record.message_content,
-          target_audience: record.target_audience || 'all',
-          status: record.status || 'pending',
-          sent_count: parseInt(record.sent_count) || 0,
-          delivered_count: parseInt(record.delivered_count) || 0,
-          failed_count: parseInt(record.failed_count) || 0,
-          created_at: record.created_at || new Date().toISOString(),
-          sent_at: record.sent_at || null,
-          sent_by: record.sent_by || null
-        }));
-      break;
-      
+    case 'observers': {
+      const profiles = records.map(record => ({
+        name: record['Name'] || record['name'] || '',
+        email: record['Email'] || record['email'] || '',
+        role: record['Role'] || record['role'] || 'observer',
+        phone_number: record['Phone Number'] || record['phone_number'] || null,
+        verification_status: record['Verification Status'] || record['verification_status'] || 'pending',
+        assigned_station: record['Assigned Station'] || record['assigned_station'] || null,
+        parish: record['Parish'] || record['parish'] || null,
+        address: record['Address'] || record['address'] || null,
+        bank_name: record['Bank Name'] || record['bank_name'] || null,
+        bank_account_number: record['Bank Account Number'] || record['bank_account_number'] || null,
+        bank_routing_number: record['Bank Routing Number'] || record['bank_routing_number'] || null,
+        trn: record['TRN'] || record['trn'] || null,
+        profile_image: record['Profile Image'] || record['profile_image'] || null
+      })).filter(profile => profile.name && profile.email);
+
+      if (profiles.length === 0) {
+        throw new Error('No valid observer records found. Make sure the sheet has Name and Email columns.');
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(profiles, { 
+          onConflict: 'email',
+          ignoreDuplicates: false 
+        });
+
+      if (error) throw new Error(`Database error: ${error.message}`);
+      return profiles.length;
+    }
+
+    case 'reports': {
+      // For reports, we need to handle observer_id properly
+      const reports = records.map(record => ({
+        report_text: record['Report Text'] || record['report_text'] || '',
+        status: record['Status'] || record['status'] || 'submitted',
+        station_id: record['Station ID'] || record['station_id'] || null,
+        location_data: record['Location Data'] ? JSON.parse(record['Location Data']) : null,
+        attachments: record['Attachments'] ? JSON.parse(record['Attachments']) : []
+      })).filter(report => report.report_text);
+
+      if (reports.length === 0) {
+        throw new Error('No valid report records found. Make sure the sheet has Report Text column.');
+      }
+
+      const { data, error } = await supabase
+        .from('observation_reports')
+        .insert(reports);
+
+      if (error) throw new Error(`Database error: ${error.message}`);
+      return reports.length;
+    }
+
+    case 'communications': {
+      const communications = records.map(record => ({
+        campaign_name: record['Campaign Name'] || record['campaign_name'] || '',
+        communication_type: record['Communication Type'] || record['communication_type'] || 'sms',
+        target_audience: record['Target Audience'] || record['target_audience'] || '',
+        message_content: record['Message Content'] || record['message_content'] || '',
+        status: record['Status'] || record['status'] || 'pending',
+        target_filter: record['Target Filter'] ? JSON.parse(record['Target Filter']) : null
+      })).filter(comm => comm.campaign_name && comm.message_content);
+
+      if (communications.length === 0) {
+        throw new Error('No valid communication records found. Make sure the sheet has Campaign Name and Message Content columns.');
+      }
+
+      const { data, error } = await supabase
+        .from('communications')
+        .insert(communications);
+
+      if (error) throw new Error(`Database error: ${error.message}`);
+      return communications.length;
+    }
+
     default:
-      throw new Error(`Invalid data type: ${dataType}`);
+      throw new Error(`Unsupported data type: ${dataType}`);
   }
-
-  if (processedRecords.length === 0) {
-    throw new Error(`No valid records found to import. Please check the data format and ensure required fields are present for ${dataType}.`);
-  }
-
-  console.log(`Importing ${processedRecords.length} processed records to ${tableName}`);
-
-  // Use upsert to handle both inserts and updates
-  const { data, error } = await supabase
-    .from(tableName)
-    .upsert(processedRecords, { 
-      onConflict: 'id',
-      ignoreDuplicates: false 
-    })
-    .select();
-
-  if (error) {
-    console.error('Database import error:', error);
-    throw new Error(`Database error: ${error.message}`);
-  }
-
-  console.log(`Successfully imported ${processedRecords.length} records`);
-  return processedRecords.length;
 }
