@@ -1,96 +1,35 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { FileSpreadsheet, Download, Upload, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { FileSpreadsheet, AlertTriangle } from 'lucide-react';
+import { useGoogleSheets } from './useGoogleSheets';
+import { GoogleSheetsForm } from './GoogleSheetsForm';
+import { GoogleSheetsActions } from './GoogleSheetsActions';
+import { GoogleSheetsStatus } from './GoogleSheetsStatus';
+import { GoogleSheetsFormData } from './types';
 
 export const GoogleSheetsManager: React.FC = () => {
-  const [spreadsheetId, setSpreadsheetId] = useState('');
-  const [range, setRange] = useState('Sheet1!A1:Z1000');
-  const [dataType, setDataType] = useState<'reports' | 'observers' | 'communications'>('reports');
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastResult, setLastResult] = useState<{ success: boolean; message: string } | null>(null);
-  const { toast } = useToast();
+  const [formData, setFormData] = useState<GoogleSheetsFormData>({
+    spreadsheetId: '',
+    range: 'Sheet1!A1:Z1000',
+    dataType: 'reports'
+  });
 
-  const handleSync = async (syncType: 'export' | 'import') => {
-    if (!spreadsheetId.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid Google Sheets ID",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setLastResult(null);
-
-    try {
-      console.log('Starting Google Sheets sync:', { syncType, dataType, spreadsheetId, range });
-
-      const { data, error } = await supabase.functions.invoke('sync-google-sheets', {
-        body: {
-          spreadsheetId: spreadsheetId.trim(),
-          range: range.trim(),
-          syncType,
-          dataType
-        }
-      });
-
-      if (error) {
-        console.error('Sync error:', error);
-        throw new Error(error.message || 'Failed to sync with Google Sheets');
-      }
-
-      console.log('Sync result:', data);
-
-      const result = {
-        success: true,
-        message: data.message || `${syncType === 'export' ? 'Export to' : 'Import from'} Google Sheets completed successfully`
-      };
-
-      setLastResult(result);
-
-      toast({
-        title: "Success",
-        description: result.message
-      });
-
-    } catch (error: any) {
-      console.error('Google Sheets sync error:', error);
-      
-      const result = {
-        success: false,
-        message: error.message || `Failed to ${syncType} data ${syncType === 'export' ? 'to' : 'from'} Google Sheets`
-      };
-
-      setLastResult(result);
-
-      toast({
-        title: "Sync Failed",
-        description: result.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const extractSpreadsheetId = (url: string) => {
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : url;
-  };
+  const { isLoading, lastResult, handleSync, extractSpreadsheetId } = useGoogleSheets();
 
   const handleSpreadsheetUrlChange = (value: string) => {
     const id = extractSpreadsheetId(value);
-    setSpreadsheetId(id);
+    setFormData(prev => ({ ...prev, spreadsheetId: id }));
+  };
+
+  const handleRangeChange = (value: string) => {
+    setFormData(prev => ({ ...prev, range: value }));
+  };
+
+  const handleDataTypeChange = (value: 'reports' | 'observers' | 'communications') => {
+    setFormData(prev => ({ ...prev, dataType: value }));
   };
 
   return (
@@ -111,92 +50,25 @@ export const GoogleSheetsManager: React.FC = () => {
             </AlertDescription>
           </Alert>
 
-          {lastResult && (
-            <Alert variant={lastResult.success ? "default" : "destructive"}>
-              {lastResult.success ? (
-                <CheckCircle className="h-4 w-4" />
-              ) : (
-                <AlertTriangle className="h-4 w-4" />
-              )}
-              <AlertDescription>
-                {lastResult.message}
-              </AlertDescription>
-            </Alert>
-          )}
+          <GoogleSheetsStatus lastResult={lastResult} />
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="spreadsheet">Google Sheets URL or ID</Label>
-              <Input
-                id="spreadsheet"
-                placeholder="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit or just the Sheet ID"
-                value={spreadsheetId}
-                onChange={(e) => handleSpreadsheetUrlChange(e.target.value)}
-                disabled={isLoading}
-              />
-              <p className="text-sm text-gray-500">
-                You can paste the full Google Sheets URL or just the spreadsheet ID
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="range">Sheet Range</Label>
-              <Input
-                id="range"
-                placeholder="Sheet1!A1:Z1000"
-                value={range}
-                onChange={(e) => setRange(e.target.value)}
-                disabled={isLoading}
-              />
-              <p className="text-sm text-gray-500">
-                Specify the range in A1 notation (e.g., Sheet1!A1:Z1000, Data!A1:C100)
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dataType">Data Type</Label>
-              <Select value={dataType} onValueChange={(value: 'reports' | 'observers' | 'communications') => setDataType(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="reports">Observation Reports</SelectItem>
-                  <SelectItem value="observers">Observer Profiles</SelectItem>
-                  <SelectItem value="communications">Communications</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <GoogleSheetsForm
+            formData={formData}
+            onSpreadsheetUrlChange={handleSpreadsheetUrlChange}
+            onRangeChange={handleRangeChange}
+            onDataTypeChange={handleDataTypeChange}
+            isLoading={isLoading}
+          />
 
           <Separator />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button
-              onClick={() => handleSync('export')}
-              disabled={isLoading || !spreadsheetId}
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              {isLoading ? 'Exporting...' : 'Export to Sheets'}
-            </Button>
-
-            <Button
-              onClick={() => handleSync('import')}
-              disabled={isLoading || !spreadsheetId}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              {isLoading ? 'Importing...' : 'Import from Sheets'}
-            </Button>
-          </div>
-
-          <Alert>
-            <AlertDescription>
-              <strong>Export:</strong> Exports current data from the database to Google Sheets (clears existing data first)<br />
-              <strong>Import:</strong> Imports data from Google Sheets to the database (will update existing records based on ID)
-            </AlertDescription>
-          </Alert>
+          <GoogleSheetsActions
+            spreadsheetId={formData.spreadsheetId}
+            range={formData.range}
+            dataType={formData.dataType}
+            isLoading={isLoading}
+            onSync={handleSync}
+          />
         </CardContent>
       </Card>
     </div>
