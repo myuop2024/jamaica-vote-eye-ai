@@ -4,6 +4,11 @@ import { DiditSettings } from './DiditSettings';
 import { TwilioSettings } from './TwilioSettings';
 import { SMSAnalytics } from './SMSAnalytics';
 import { SystemSettings } from '../SystemSettings';
+import { NotificationSettings } from './NotificationSettings';
+import { CommunicationsSettings } from './CommunicationsSettings';
+import { SecuritySettings } from './SecuritySettings';
+import { DataSettings } from './DataSettings';
+import { UserSettings } from './UserSettings';
 import { SettingsSection } from './useSettingsNavigation';
 
 interface SettingsContentProps {
@@ -22,18 +27,15 @@ export const SettingsContent: React.FC<SettingsContentProps> = ({ activeSection 
       case 'sms-analytics':
         return <SMSAnalytics />;
       case 'notifications':
+        return <NotificationSettings />;
       case 'communications':
+        return <CommunicationsSettings />;
       case 'security':
+        return <SecuritySettings />;
       case 'data':
+        return <DataSettings />;
       case 'users':
-        return (
-          <div className="p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} Settings
-            </h2>
-            <p className="text-gray-600">This section is coming soon...</p>
-          </div>
-        );
+        return <UserSettings />;
       default:
         return <SystemSettings />;
     }
