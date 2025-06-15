@@ -77,47 +77,89 @@ export async function importDataToSupabase(dataType: string, records: any[]) {
   const config = getSupabaseConfig();
   const supabase = createClient(config.url, config.serviceRoleKey);
   
+  console.log(`Processing ${records.length} records for import to ${dataType}`);
+  
   let tableName = '';
-  let processedRecords = records;
+  let processedRecords = [];
   
   switch (dataType) {
     case 'reports':
       tableName = 'observation_reports';
-      // Ensure required fields are present
-      processedRecords = records.filter(record => record.report_text && record.observer_id);
+      // Process and validate reports data
+      processedRecords = records
+        .filter(record => record.report_text && record.report_text.trim() !== '')
+        .map(record => ({
+          id: record.id || undefined, // Let database generate if not provided
+          observer_id: record.observer_id || null,
+          report_text: record.report_text,
+          station_id: record.station_id || null,
+          status: record.status || 'submitted',
+          created_at: record.created_at || new Date().toISOString(),
+          updated_at: record.updated_at || new Date().toISOString()
+        }));
       break;
+      
     case 'observers':
       tableName = 'profiles';
-      // Ensure required fields are present and set role
-      processedRecords = records.filter(record => record.name && record.email).map(record => ({
-        ...record,
-        role: record.role || 'observer'
-      }));
+      // Process and validate observers data
+      processedRecords = records
+        .filter(record => record.name && record.name.trim() !== '' && record.email && record.email.trim() !== '')
+        .map(record => ({
+          id: record.id || undefined, // Let database generate if not provided
+          name: record.name,
+          email: record.email,
+          role: record.role || 'observer',
+          phone_number: record.phone_number || null,
+          assigned_station: record.assigned_station || null,
+          verification_status: record.verification_status || 'pending',
+          created_at: record.created_at || new Date().toISOString()
+        }));
       break;
+      
     case 'communications':
       tableName = 'communications';
-      // Ensure required fields are present
-      processedRecords = records.filter(record => record.campaign_name && record.message_content);
+      // Process and validate communications data
+      processedRecords = records
+        .filter(record => record.campaign_name && record.campaign_name.trim() !== '' && record.message_content && record.message_content.trim() !== '')
+        .map(record => ({
+          id: record.id || undefined, // Let database generate if not provided
+          campaign_name: record.campaign_name,
+          message_content: record.message_content,
+          target_audience: record.target_audience || 'all',
+          status: record.status || 'pending',
+          sent_count: parseInt(record.sent_count) || 0,
+          delivered_count: parseInt(record.delivered_count) || 0,
+          failed_count: parseInt(record.failed_count) || 0,
+          created_at: record.created_at || new Date().toISOString(),
+          sent_at: record.sent_at || null,
+          sent_by: record.sent_by || null
+        }));
       break;
+      
     default:
       throw new Error(`Invalid data type: ${dataType}`);
   }
 
   if (processedRecords.length === 0) {
-    throw new Error('No valid records found to import. Please check the data format.');
+    throw new Error(`No valid records found to import. Please check the data format and ensure required fields are present for ${dataType}.`);
   }
 
-  const { error } = await supabase
+  console.log(`Importing ${processedRecords.length} processed records to ${tableName}`);
+
+  // Use upsert to handle both inserts and updates
+  const { data, error } = await supabase
     .from(tableName)
     .upsert(processedRecords, { 
       onConflict: 'id',
       ignoreDuplicates: false 
-    });
+    })
+    .select();
 
   if (error) {
-    console.error('Database error:', error);
+    console.error('Database import error:', error);
     throw new Error(`Database error: ${error.message}`);
   }
 
+  console.log(`Successfully imported ${processedRecords.length} records`);
   return processedRecords.length;
 }
