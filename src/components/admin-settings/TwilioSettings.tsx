@@ -52,8 +52,36 @@ export const TwilioSettings: React.FC = () => {
   const loadTwilioSettings = async () => {
     try {
       setIsLoading(true);
-      // In a real implementation, you'd load from Supabase secrets or configuration table
-      console.log('Loading Twilio settings...');
+      
+      // Load settings from the didit_configuration table
+      const { data: configData, error } = await supabase
+        .from('didit_configuration')
+        .select('setting_key, setting_value, is_active')
+        .in('setting_key', ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER', 'TWILIO_ENABLED']);
+
+      if (error) {
+        console.error('Error loading Twilio settings:', error);
+        return;
+      }
+
+      if (configData && configData.length > 0) {
+        const config = configData.reduce((acc, item) => {
+          acc[item.setting_key] = item.setting_value.value;
+          return acc;
+        }, {} as Record<string, any>);
+
+        setSettings(prev => ({
+          ...prev,
+          accountSid: config.TWILIO_ACCOUNT_SID || '',
+          authToken: config.TWILIO_AUTH_TOKEN || '',
+          fromNumber: config.TWILIO_FROM_NUMBER || '',
+          enabled: config.TWILIO_ENABLED !== false
+        }));
+
+        if (config.TWILIO_ACCOUNT_SID && config.TWILIO_AUTH_TOKEN) {
+          setConnectionStatus('unknown'); // Reset to allow re-testing
+        }
+      }
       
       toast({
         title: "Settings Loaded",
@@ -210,7 +238,7 @@ export const TwilioSettings: React.FC = () => {
       if (data.success) {
         toast({
           title: "Test SMS Sent",
-          description: `Test message sent successfully to ${testNumber}`
+          description: `Test message sent successfully to ${testNumber}`,
         });
       } else {
         throw new Error(data.error || 'Failed to send test SMS');
@@ -433,8 +461,8 @@ export const TwilioSettings: React.FC = () => {
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Important:</strong> You must save your configuration and test the connection before sending SMS messages. 
-              The settings need to be properly configured in the system for SMS functionality to work.
+              <strong>Important:</strong> Settings are now securely stored in the database. 
+              Make sure to save your configuration and test the connection before sending SMS messages.
             </AlertDescription>
           </Alert>
         </CardContent>

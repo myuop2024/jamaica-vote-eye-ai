@@ -21,12 +21,44 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { to, message, campaignId }: SMSRequest = await req.json();
     
-    const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioFromNumber = Deno.env.get('TWILIO_FROM_NUMBER');
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Retrieve Twilio configuration from database
+    const { data: configData, error: configError } = await supabase
+      .from('didit_configuration')
+      .select('setting_key, setting_value, is_active')
+      .in('setting_key', ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM_NUMBER', 'TWILIO_ENABLED'])
+      .eq('is_active', true);
+
+    if (configError) {
+      throw new Error(`Failed to retrieve Twilio configuration: ${configError.message}`);
+    }
+
+    if (!configData || configData.length === 0) {
+      throw new Error('Twilio configuration not found. Please configure Twilio settings first.');
+    }
+
+    // Parse configuration
+    const config = configData.reduce((acc, item) => {
+      acc[item.setting_key] = item.setting_value.value;
+      return acc;
+    }, {} as Record<string, any>);
+
+    const twilioAccountSid = config.TWILIO_ACCOUNT_SID;
+    const twilioAuthToken = config.TWILIO_AUTH_TOKEN;
+    const twilioFromNumber = config.TWILIO_FROM_NUMBER;
+    const twilioEnabled = config.TWILIO_ENABLED;
+
+    if (!twilioEnabled) {
+      throw new Error('Twilio SMS service is currently disabled');
+    }
 
     if (!twilioAccountSid || !twilioAuthToken || !twilioFromNumber) {
-      throw new Error('Twilio configuration missing');
+      throw new Error('Twilio configuration incomplete. Please check your settings.');
     }
 
     // Send SMS via Twilio
@@ -50,16 +82,11 @@ const handler = async (req: Request): Promise<Response> => {
     const result = await smsResponse.json();
 
     if (!smsResponse.ok) {
-      throw new Error(`Twilio error: ${result.message}`);
+      throw new Error(`Twilio error: ${result.message || 'Unknown error'}`);
     }
 
-    // Log the SMS send to Supabase
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    await supabase
+    // Create SMS log table entry if it doesn't exist
+    const { error: logError } = await supabase
       .from('sms_logs')
       .insert({
         to_number: to,
@@ -69,6 +96,11 @@ const handler = async (req: Request): Promise<Response> => {
         status: result.status,
         sent_at: new Date().toISOString()
       });
+
+    // If sms_logs table doesn't exist, we'll ignore the error for now
+    if (logError && !logError.message.includes('does not exist')) {
+      console.warn('Failed to log SMS:', logError.message);
+    }
 
     console.log('SMS sent successfully:', result.sid);
 
@@ -83,7 +115,10 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error('Error sending SMS:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
