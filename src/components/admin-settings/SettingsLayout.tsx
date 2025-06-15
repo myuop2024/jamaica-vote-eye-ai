@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
 import { DiditSettings } from './DiditSettings';
+import { TwilioSettings } from './TwilioSettings';
+import { SMSAnalytics } from './SMSAnalytics';
 import { SystemSettings } from '../SystemSettings';
 
 export const SettingsLayout: React.FC = () => {
@@ -14,6 +16,10 @@ export const SettingsLayout: React.FC = () => {
         return <SystemSettings />;
       case 'didit':
         return <DiditSettings />;
+      case 'twilio':
+        return <TwilioSettings />;
+      case 'sms-analytics':
+        return <SMSAnalytics />;
       case 'notifications':
       case 'communications':
       case 'security':

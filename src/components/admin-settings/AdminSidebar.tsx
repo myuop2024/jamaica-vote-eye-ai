@@ -12,7 +12,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Settings, Shield, Database, Bell, Mail, Users, Key } from 'lucide-react';
+import { Settings, Shield, Database, Bell, Mail, Users, Key, Phone, BarChart3 } from 'lucide-react';
 
 interface AdminSidebarProps {
   activeSection: string;
@@ -31,6 +31,18 @@ const settingsSections = [
     label: 'Didit Verification',
     icon: Shield,
     description: 'Identity verification settings'
+  },
+  {
+    id: 'twilio',
+    label: 'Twilio SMS',
+    icon: Phone,
+    description: 'SMS service configuration'
+  },
+  {
+    id: 'sms-analytics',
+    label: 'SMS Analytics',
+    icon: BarChart3,
+    description: 'SMS logs and statistics'
   },
   {
     id: 'notifications',
