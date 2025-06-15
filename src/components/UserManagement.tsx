@@ -37,7 +37,8 @@ export const UserManagement: React.FC = () => {
     getActiveFiltersCount,
     handleUpdateUserStatus,
     handleDeleteUser,
-    handleSendMessage
+    handleSendMessage,
+    loadUsers
   } = useUserManagement();
 
   if (isLoading) {
@@ -51,7 +52,7 @@ export const UserManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <UserManagementHeader />
+        <UserManagementHeader onUserAdded={loadUsers} />
         <CardContent className="space-y-6">
           <UserFilters
             searchTerm={searchTerm}
