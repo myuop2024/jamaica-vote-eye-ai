@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,37 +21,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthProvider: Setting up auth state listener');
     
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('AuthProvider: Initial session check', { session: !!session, error });
-      if (error) {
-        console.error('Error getting initial session:', error);
-        setIsLoading(false);
-        return;
-      }
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id, session.user.email || '');
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    // Listen for auth changes
+    // We don't need getSession() because onAuthStateChange fires with an initial session.
+    // Making the callback non-async is key to preventing deadlocks.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('AuthProvider: Auth state change', { event, session: !!session });
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('AuthProvider: Auth state change', { event: _event, session: !!session });
       
       if (session?.user) {
-        await fetchUserProfile(session.user.id, session.user.email || '');
+        // Not awaiting fetchUserProfile here prevents deadlocks.
+        // The state will update once the async operation is done.
+        fetchUserProfile(session.user.id, session.user.email || '');
       } else {
         setUser(null);
         setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('AuthProvider: Unsubscribing from auth state changes.');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserProfile = async (userId: string, email: string) => {
