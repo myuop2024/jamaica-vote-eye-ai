@@ -28,10 +28,26 @@ interface VerificationDocument {
   };
 }
 
+interface IdentityVerification {
+  id: string;
+  user_id: string;
+  verification_method: string;
+  document_type?: string;
+  status: string;
+  created_at: string;
+  verified_at?: string;
+  profiles: {
+    name: string;
+    email: string;
+  };
+}
+
 export const VerificationCenter: React.FC = () => {
   const { toast } = useToast();
   const [documents, setDocuments] = useState<VerificationDocument[]>([]);
   const [filteredDocuments, setFilteredDocuments] = useState<VerificationDocument[]>([]);
+  const [verifications, setVerifications] = useState<IdentityVerification[]>([]);
+  const [filteredVerifications, setFilteredVerifications] = useState<IdentityVerification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<VerificationDocument | null>(null);
@@ -42,6 +58,7 @@ export const VerificationCenter: React.FC = () => {
 
   useEffect(() => {
     fetchDocuments();
+    fetchIdentityVerifications();
   }, []);
 
   useEffect(() => {
@@ -49,8 +66,27 @@ export const VerificationCenter: React.FC = () => {
   }, [documents, searchTerm]);
 
   useEffect(() => {
-    filterDocuments();
-  }, [statusFilter]);
+    filterVerifications();
+  }, [verifications, searchTerm, statusFilter]);
+
+  const fetchIdentityVerifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('didit_verifications')
+        .select(`*, profiles(name, email)`)  // join to get user info
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setVerifications(data || []);
+    } catch (error: any) {
+      console.error('Error fetching identity verifications:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load identity verifications',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const fetchDocuments = async () => {
     try {
@@ -93,6 +129,24 @@ export const VerificationCenter: React.FC = () => {
     }
 
     setFilteredDocuments(filtered);
+  };
+
+  const filterVerifications = () => {
+    let filtered = verifications;
+
+    if (searchTerm) {
+      filtered = filtered.filter(v =>
+        v.profiles.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.profiles.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.verification_method.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(v => v.status === statusFilter);
+    }
+
+    setFilteredVerifications(filtered);
   };
 
   const verifyDocument = async (documentId: string, approved: boolean) => {
@@ -266,6 +320,47 @@ export const VerificationCenter: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Identity verification attempts */}
+          <div className="rounded-lg border mt-8">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Observer</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Requested</TableHead>
+                  <TableHead>Verified</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredVerifications.map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{v.profiles.name}</div>
+                        <div className="text-sm text-gray-500">{v.profiles.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="capitalize">{v.verification_method}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadge(v.status)}>
+                        {v.status.charAt(0).toUpperCase() + v.status.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{new Date(v.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{v.verified_at ? new Date(v.verified_at).toLocaleDateString() : <span className="text-gray-400">Pending</span>}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {filteredVerifications.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No identity verification attempts found</p>
+              </div>
+            )}
           </div>
 
           {filteredDocuments.length === 0 && (
