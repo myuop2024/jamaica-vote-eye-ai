@@ -1,268 +1,282 @@
 
-import React, { useEffect, useState } from 'react';
-import { getAllProfileFieldTemplates } from '@/services/profileFieldTemplateService';
-import { ProfileFieldTemplate, ProfileData } from '@/types/profile';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { ProfileFieldTemplate, ProfileData } from '@/types/profile';
 
-export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
-  const { user } = useAuth();
+const JAMAICA_PARISHES = [
+  'Kingston',
+  'St. Andrew',
+  'St. Catherine',
+  'Clarendon',
+  'Manchester',
+  'St. Elizabeth',
+  'Westmoreland',
+  'Hanover',
+  'St. James',
+  'Trelawny',
+  'St. Ann',
+  'St. Mary',
+  'Portland',
+  'St. Thomas'
+];
+
+export const ProfileForm: React.FC = () => {
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
-  const [fields, setFields] = useState<ProfileFieldTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [templates, setTemplates] = useState<ProfileFieldTemplate[]>([]);
   const [profileData, setProfileData] = useState<ProfileData>({});
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getAllProfileFieldTemplates()
-      .then(templateFields => {
-        console.log('Profile field templates received:', templateFields);
-        setFields(templateFields);
-      })
-      .catch(e => setError(e.message));
-    
-    // Fetch user profile data from the existing columns
-    supabase
-      .from('profiles')
-      .select('name, phone_number, address, parish, assigned_station')
-      .eq('id', userId)
-      .single()
-      .then(({ data, error }) => {
-        if (error) return;
-        // Map the existing profile columns to our profile data structure
-        const mappedData: ProfileData = {
-          full_name: data?.name || '',
-          phone_number: data?.phone_number || '',
-          address: data?.address || '',
-          parish: data?.parish || '',
-          assigned_station: data?.assigned_station || ''
-        };
-        setProfileData(mappedData);
+    fetchFieldTemplates();
+    if (user) {
+      setProfileData({
+        name: user.name || '',
+        phone_number: user.phone_number || '',
+        address: user.address || '',
+        parish: user.parish || '',
+        assigned_station: user.assigned_station || ''
       });
-  }, [userId]);
-
-  const handleChange = (key: string, value: any) => {
-    setProfileData(prev => ({ ...prev, [key]: value }));
-    setError(null);
-    setSuccess(null);
-  };
-
-  const validate = () => {
-    for (const field of fields) {
-      if (field.required && !profileData[field.field_key]) {
-        setError(`${field.label} is required.`);
-        return false;
-      }
-      if (field.validation && profileData[field.field_key]) {
-        try {
-          const re = new RegExp(field.validation);
-          if (!re.test(profileData[field.field_key])) {
-            setError(`${field.label} is invalid.`);
-            return false;
-          }
-        } catch {
-          // Ignore invalid regex
-        }
-      }
     }
-    return true;
+  }, [user]);
+
+  const fetchFieldTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profile_field_templates')
+        .select('*')
+        .eq('visible_to_user', true)
+        .order('order');
+
+      if (error) throw error;
+      setTemplates(data || []);
+    } catch (error) {
+      console.error('Error fetching field templates:', error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
-    setLoading(true);
+    if (!user) return;
+
+    setIsLoading(true);
     try {
-      // Map our profile data back to the existing profile columns
       const updateData = {
-        name: profileData.full_name || '',
-        phone_number: profileData.phone_number || '',
-        address: profileData.address || '',
-        parish: profileData.parish || '',
-        assigned_station: profileData.assigned_station || ''
+        name: String(profileData.name || ''),
+        phone_number: String(profileData.phone_number || ''),
+        address: String(profileData.address || ''),
+        parish: String(profileData.parish || ''),
+        assigned_station: String(profileData.assigned_station || '')
       };
-      
+
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', userId);
+        .eq('id', user.id);
+
       if (error) throw error;
-      setSuccess('Profile updated successfully.');
+
+      await refreshUser();
       toast({
-        title: 'Success',
-        description: 'Profile updated successfully.',
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated.",
       });
-    } catch (e: any) {
-      setError(e.message);
+    } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
-        title: 'Error',
-        description: e.message,
-        variant: 'destructive',
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Enhanced validation function for select values
-  const isValidSelectValue = (value: any): value is string => {
-    const isValid = typeof value === 'string' && value.trim().length > 0;
-    console.log('Validating select value:', { value, isValid });
-    return isValid;
+  const handleFieldChange = (fieldKey: string, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      [fieldKey]: value
+    }));
   };
 
-  // Get safe options with comprehensive validation and logging
-  const getSafeSelectOptions = (options: string[] | undefined, fieldKey: string): string[] => {
-    console.log(`Processing options for field ${fieldKey}:`, options);
-    
-    if (!Array.isArray(options)) {
-      console.log(`No options array for field ${fieldKey}`);
-      return [];
+  const isValidSelectItemValue = (value: unknown): value is string => {
+    return typeof value === 'string' && value.trim() !== '';
+  };
+
+  const getValidOptions = (options: unknown): string[] => {
+    if (!Array.isArray(options)) return [];
+    return options.filter(isValidSelectItemValue);
+  };
+
+  const shouldRenderAsSelect = (template: ProfileFieldTemplate): boolean => {
+    if (template.type !== 'select') return false;
+    const validOptions = getValidOptions(template.options);
+    return validOptions.length > 0;
+  };
+
+  const renderField = (template: ProfileFieldTemplate) => {
+    const fieldValue = String(profileData[template.field_key] || '');
+
+    if (template.field_key === 'parish') {
+      return (
+        <div key={template.id} className="space-y-2">
+          <Label htmlFor={template.field_key}>{template.label}</Label>
+          <Select
+            value={fieldValue}
+            onValueChange={(value) => handleFieldChange(template.field_key, value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a parish" />
+            </SelectTrigger>
+            <SelectContent>
+              {JAMAICA_PARISHES.map((parish) => (
+                <SelectItem key={parish} value={parish}>
+                  {parish}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
     }
-    
-    const validOptions = options
-      .filter((option, index) => {
-        const isValid = isValidSelectValue(option);
-        if (!isValid) {
-          console.warn(`Invalid option at index ${index} for field ${fieldKey}:`, option);
-        }
-        return isValid;
-      })
-      .map(option => option.trim())
-      .filter(option => option.length > 0);
-    
-    console.log(`Valid options for field ${fieldKey}:`, validOptions);
-    return validOptions;
-  };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Edit Profile</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {success && (
-            <Alert>
-              <AlertDescription>{success}</AlertDescription>
-            </Alert>
-          )}
-          {fields
-            .filter(f => f.visible_to_user && (!f.roles || f.roles.includes(user?.role)))
-            .sort((a, b) => a.order - b.order)
-            .map(field => {
-              // Handle select fields with ultimate safety and logging
-              if (field.type === 'select') {
-                const safeOptions = getSafeSelectOptions(field.options, field.field_key);
-                
-                // Don't render select if no safe options
-                if (safeOptions.length === 0) {
-                  console.warn(`No valid options for select field ${field.field_key}, skipping render`);
+    if (shouldRenderAsSelect(template)) {
+      const validOptions = getValidOptions(template.options);
+      return (
+        <div key={template.id} className="space-y-2">
+          <Label htmlFor={template.field_key}>{template.label}</Label>
+          <Select
+            value={fieldValue}
+            onValueChange={(value) => handleFieldChange(template.field_key, value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={`Select ${template.label.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              {validOptions.map((option) => {
+                const optionValue = String(option);
+                if (!isValidSelectItemValue(optionValue)) {
+                  console.warn(`Skipping invalid option for ${template.field_key}:`, option);
                   return null;
                 }
-                
                 return (
-                  <div key={field.field_key} className="space-y-2">
-                    <Label>{field.label}{field.required && ' *'}</Label>
-                    <Select
-                      value={profileData[field.field_key] || ''}
-                      onValueChange={v => handleChange(field.field_key, v)}
-                      required={field.required}
-                    >
-                      <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
-                      <SelectContent>
-                        {safeOptions.map((option, index) => {
-                          // Final safety check before rendering each SelectItem
-                          if (!isValidSelectValue(option)) {
-                            console.error(`Attempting to render invalid SelectItem for ${field.field_key} at index ${index}:`, option);
-                            return null;
-                          }
-                          
-                          return (
-                            <SelectItem key={`${field.field_key}-${index}-${option}`} value={option}>
-                              {option}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <SelectItem key={optionValue} value={optionValue}>
+                    {optionValue}
+                  </SelectItem>
                 );
-              }
-              
-              // Handle all other field types
-              return (
-                <div key={field.field_key} className="space-y-2">
-                  <Label>{field.label}{field.required && ' *'}</Label>
-                  {field.type === 'text' && (
-                    <Input
-                      value={profileData[field.field_key] || ''}
-                      onChange={e => handleChange(field.field_key, e.target.value)}
-                      required={field.required}
-                    />
-                  )}
-                  {field.type === 'number' && (
-                    <Input
-                      type="number"
-                      value={profileData[field.field_key] || ''}
-                      onChange={e => handleChange(field.field_key, e.target.value)}
-                      required={field.required}
-                    />
-                  )}
-                  {field.type === 'date' && (
-                    <Input
-                      type="date"
-                      value={profileData[field.field_key] || ''}
-                      onChange={e => handleChange(field.field_key, e.target.value)}
-                      required={field.required}
-                    />
-                  )}
-                  {field.type === 'checkbox' && field.options && (
-                    <div className="flex flex-col gap-2">
-                      {getSafeSelectOptions(field.options, field.field_key).map(opt => (
-                        <label key={opt} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={Array.isArray(profileData[field.field_key]) && profileData[field.field_key].includes(opt)}
-                            onChange={e => {
-                              const arr = Array.isArray(profileData[field.field_key]) ? [...profileData[field.field_key]] : [];
-                              if (e.target.checked) arr.push(opt);
-                              else arr.splice(arr.indexOf(opt), 1);
-                              handleChange(field.field_key, arr);
-                            }}
-                          />
-                          {opt}
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                  {field.type === 'file' && (
-                    <Input
-                      type="file"
-                      onChange={e => handleChange(field.field_key, e.target.files?.[0])}
-                      required={field.required}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save Profile'}</Button>
-        </form>
-      </CardContent>
-    </Card>
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+
+    // Default to text input for other field types
+    return (
+      <div key={template.id} className="space-y-2">
+        <Label htmlFor={template.field_key}>{template.label}</Label>
+        <Input
+          id={template.field_key}
+          type={template.type === 'number' ? 'number' : 'text'}
+          value={fieldValue}
+          onChange={(e) => handleFieldChange(template.field_key, e.target.value)}
+          required={template.required}
+        />
+      </div>
+    );
+  };
+
+  const getUserRoles = (): string[] => {
+    if (!user?.role) return [];
+    return Array.isArray(user.role) ? user.role : [user.role];
+  };
+
+  const filteredTemplates = templates.filter(template => {
+    if (!template.roles || template.roles.length === 0) return true;
+    const userRoles = getUserRoles();
+    const templateRoles = Array.isArray(template.roles) ? template.roles : [];
+    return templateRoles.some(role => userRoles.includes(role));
+  });
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>
+            Update your personal information and contact details.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Core profile fields */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                value={String(profileData.name || '')}
+                onChange={(e) => handleFieldChange('name', e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone_number">Phone Number</Label>
+              <Input
+                id="phone_number"
+                type="tel"
+                value={String(profileData.phone_number || '')}
+                onChange={(e) => handleFieldChange('phone_number', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                type="text"
+                value={String(profileData.address || '')}
+                onChange={(e) => handleFieldChange('address', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="parish">Parish</Label>
+              <Select
+                value={String(profileData.parish || '')}
+                onValueChange={(value) => handleFieldChange('parish', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a parish" />
+                </SelectTrigger>
+                <SelectContent>
+                  {JAMAICA_PARISHES.map((parish) => (
+                    <SelectItem key={parish} value={parish}>
+                      {parish}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Dynamic fields from templates */}
+            {filteredTemplates.map(renderField)}
+
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? 'Updating...' : 'Update Profile'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

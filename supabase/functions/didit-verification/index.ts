@@ -1,5 +1,6 @@
-// Version: 25 - Added cancel verification functionality
-// Last updated: 2024-01-16T04:10:00.000Z
+
+// Version: 26 - Enhanced error handling and debugging
+// Last updated: 2024-01-16T04:35:00.000Z
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -21,8 +22,19 @@ serve(async (req) => {
 
   try {
     const rawBody = await req.text();
-    const body = JSON.parse(rawBody || '{}');
-    const { action } = body;
+    let body = {};
+    
+    try {
+      body = JSON.parse(rawBody || '{}');
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+    
+    const { action } = body as any;
 
     console.log('Didit verification request:', { action, method: req.method, hasBody: !!rawBody });
 
@@ -37,21 +49,41 @@ serve(async (req) => {
     }
 
     // All other actions require user authentication
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('Missing Authorization header');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }), 
+        JSON.stringify({ error: 'Missing Authorization header' }), 
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
       );
     }
 
-    const { verification_method, document_type, user_id, session_id, verification_id } = body;
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError) {
+      console.error('Auth error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed', details: userError.message }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+      );
+    }
+    
+    if (!user) {
+      console.error('No user found in auth context');
+      return new Response(
+        JSON.stringify({ error: 'User not authenticated' }), 
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    const { verification_method, document_type, user_id, session_id, verification_id } = body as any;
 
     switch (action) {
       case 'test_connection':
@@ -60,7 +92,11 @@ serve(async (req) => {
       case 'start_verification':
         // Ensure the user can only start verification for themselves
         if (user.id !== user_id) {
-          throw new Error("User can only start verification for themselves.");
+          console.error('User ID mismatch:', { authUserId: user.id, requestedUserId: user_id });
+          return new Response(
+            JSON.stringify({ error: 'User can only start verification for themselves' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+          );
         }
         return await handleStartVerification(supabaseClient, user_id, verification_method, document_type);
       
@@ -81,20 +117,37 @@ serve(async (req) => {
           console.log('Admin check:', { profile, userRole: profile?.role });
 
           if (profile?.role !== 'admin') {
-            throw new Error('Only admins can cancel other users\' verifications.');
+            return new Response(
+              JSON.stringify({ error: 'Only admins can cancel other users\' verifications' }),
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+            );
           }
         }
         console.log('Calling handleCancelVerification with:', verification_id || session_id || '');
         return await handleCancelVerification(supabaseClient, verification_id || session_id || '');
       
       default:
-        throw new Error(`Invalid action: ${action}`);
+        console.error('Invalid action:', action);
+        return new Response(
+          JSON.stringify({ error: `Invalid action: ${action}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }}
+        );
     }
   } catch (error) {
     console.error('Error in didit-verification function:', error);
+    
+    // Return a proper error response with more details
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : '';
+    
+    console.error('Error stack:', errorStack);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      JSON.stringify({ 
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });

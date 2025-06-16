@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +34,16 @@ export const IdentityVerificationCenter: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setUserVerifications(data || []);
+      
+      // Transform the data to match our DiditVerification type
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        extracted_data: item.extracted_data as Record<string, unknown> || {},
+        verification_metadata: item.verification_metadata as Record<string, unknown> || {},
+        didit_response: item.didit_response as Record<string, unknown> || {}
+      }));
+      
+      setUserVerifications(transformedData);
     } catch (error) {
       console.error('Error fetching verifications:', error);
       toast({

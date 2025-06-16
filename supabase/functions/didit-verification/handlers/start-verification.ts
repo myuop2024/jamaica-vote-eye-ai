@@ -4,8 +4,23 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export async function handleStartVerification(supabaseClient: any, userId: string, verificationMethod: string, documentType?: string) {
   try {
-    if (!DIDIT_API_KEY) throw new Error('DIDIT_API_KEY secret is not set.');
-    if (!DIDIT_WORKFLOW_ID) throw new Error('DIDIT_WORKFLOW_ID secret is not set.');
+    console.log('Starting verification for user:', userId, 'method:', verificationMethod, 'docType:', documentType);
+
+    if (!DIDIT_API_KEY) {
+      console.error('DIDIT_API_KEY secret is not set');
+      return new Response(
+        JSON.stringify({ success: false, error: 'DIDIT_API_KEY secret is not set.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
+    if (!DIDIT_WORKFLOW_ID) {
+      console.error('DIDIT_WORKFLOW_ID secret is not set');
+      return new Response(
+        JSON.stringify({ success: false, error: 'DIDIT_WORKFLOW_ID secret is not set.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
 
     // Get enabled methods/types from didit_configuration
     const adminClient = createClient(
@@ -18,16 +33,22 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
       .eq('is_active', true);
     if (configError) {
       console.error('Failed to load verification config:', configError);
-      throw new Error('Failed to load verification config');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to load verification config' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
+    
     const configMap = configRows.reduce((acc: any, item: any) => {
       let value = item.setting_value;
       try { value = JSON.parse(value); } catch {};
       acc[item.setting_key] = value;
       return acc;
     }, {});
+    
     const enabledMethods = Array.isArray(configMap.enabled_verification_methods) ? configMap.enabled_verification_methods : ['document'];
     const allowedTypes = Array.isArray(configMap.document_types_allowed) ? configMap.document_types_allowed : ['passport', 'drivers_license', 'national_id', 'voters_id'];
+    
     if (!enabledMethods.includes(verificationMethod)) {
       console.error('Verification method not enabled:', verificationMethod, enabledMethods);
       return new Response(
@@ -35,6 +56,7 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+    
     if (verificationMethod === 'document' && documentType && !allowedTypes.includes(documentType)) {
       console.error('Document type not enabled:', documentType, allowedTypes);
       return new Response(
@@ -49,8 +71,17 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
       .select('name, email')
       .eq('id', userId)
       .single();
-    if (profileError || !userProfile?.name || !userProfile?.email) {
-      console.error('User profile incomplete or not found:', userId, userProfile, profileError);
+      
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to fetch user profile' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+    
+    if (!userProfile?.name || !userProfile?.email) {
+      console.error('User profile incomplete or not found:', userId, userProfile);
       return new Response(
         JSON.stringify({ success: false, error: 'User profile is incomplete. Name and email are required.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -76,7 +107,7 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
       }
     };
 
-    console.log('Creating Didit session with payload:', sessionPayload);
+    console.log('Creating Didit session with payload:', JSON.stringify(sessionPayload, null, 2));
 
     const apiResponse = await fetch(`${DIDIT_API_BASE_URL}/session/`, {
       method: 'POST',
@@ -87,14 +118,22 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
       body: JSON.stringify(sessionPayload),
     });
 
+    console.log('Didit API response status:', apiResponse.status, apiResponse.statusText);
+
     if (!apiResponse.ok) {
       const errorData = await apiResponse.text();
-      console.error('Didit API error:', errorData);
-      throw new Error(`Didit API error: ${apiResponse.status} - ${errorData}`);
+      console.error('Didit API error response:', errorData);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `Didit API error: ${apiResponse.status} - ${errorData}` 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     const diditSession = await apiResponse.json();
-    console.log('Didit session created:', diditSession);
+    console.log('Didit session created successfully:', JSON.stringify(diditSession, null, 2));
 
     const { session_id: sessionId } = diditSession;
     // Extract the portal URL from the Didit response - it's in the 'url' property
@@ -102,7 +141,10 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
 
     if (!clientUrl) {
       console.error('No verification portal URL in Didit response:', diditSession);
-      throw new Error('Didit API did not return a verification portal URL');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Didit API did not return a verification portal URL' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     console.log('Extracted verification portal URL:', clientUrl);
@@ -122,17 +164,26 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
       .select().single();
 
     if (dbError) {
-      console.error('Database error:', dbError);
-      throw new Error('Failed to create verification record');
+      console.error('Database error when storing verification:', dbError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to create verification record' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
-    console.log('Returning verification response:', { success: true, sessionId, clientUrl, verification });
+    console.log('Verification record created successfully:', verification.id);
+    console.log('Returning verification response with URL:', clientUrl);
+    
     return new Response(
       JSON.stringify({ success: true, sessionId, clientUrl, verification }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   } catch (error) {
-    console.error('Error starting verification (catch):', error);
-    throw error;
+    console.error('Error starting verification (catch block):', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return new Response(
+      JSON.stringify({ success: false, error: errorMessage }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
   }
 }
