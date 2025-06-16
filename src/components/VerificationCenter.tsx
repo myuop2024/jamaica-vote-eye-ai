@@ -55,6 +55,7 @@ export const VerificationCenter: React.FC = () => {
   const [verificationNotes, setVerificationNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDocuments();
@@ -202,6 +203,34 @@ export const VerificationCenter: React.FC = () => {
     }
   };
 
+  const cancelVerification = async (verificationId: string) => {
+    if (!window.confirm('Cancel this verification attempt? The user will need to start over.')) return;
+    try {
+      setCancelingId(verificationId);
+      const { error } = await supabase
+        .from('didit_verifications')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', verificationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Verification Cancelled',
+        description: 'The user can now start a new verification.',
+      });
+      fetchIdentityVerifications();
+    } catch (error: any) {
+      console.error('Cancel verification error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to cancel verification',
+        variant: 'destructive',
+      });
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const variants = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -332,6 +361,7 @@ export const VerificationCenter: React.FC = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Requested</TableHead>
                   <TableHead>Verified</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -351,6 +381,19 @@ export const VerificationCenter: React.FC = () => {
                     </TableCell>
                     <TableCell>{new Date(v.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>{v.verified_at ? new Date(v.verified_at).toLocaleDateString() : <span className="text-gray-400">Pending</span>}</TableCell>
+                    <TableCell>
+                      {v.status === 'pending' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => cancelVerification(v.id)}
+                          disabled={cancelingId === v.id}
+                          className="border-red-200 text-red-600 hover:bg-red-50"
+                        >
+                          {cancelingId === v.id ? 'Cancelling...' : 'Cancel'}
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
