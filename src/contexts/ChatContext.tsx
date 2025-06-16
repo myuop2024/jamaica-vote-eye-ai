@@ -69,7 +69,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const connectWebSocket = () => {
       try {
         const token = localStorage.getItem('jwt');
-        const wsUrl = `${window.location.origin.replace('http', 'ws')}/api/chat/ws?room=${currentRoom}`;
+        const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+        const wsUrl = `${window.location.origin.replace('http', 'ws')}/api/chat/ws?room=${currentRoom}${tokenParam}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         setConnectionStatus('connecting');
