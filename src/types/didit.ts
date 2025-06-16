@@ -7,9 +7,9 @@ export interface DiditVerification {
   document_type?: DocumentType;
   status: VerificationResult;
   confidence_score?: number;
-  extracted_data?: any;
-  verification_metadata?: any;
-  didit_response?: any;
+  extracted_data?: Record<string, unknown>;
+  verification_metadata?: Record<string, unknown>;
+  didit_response?: Record<string, unknown>;
   error_message?: string;
   expires_at?: string;
   verified_at?: string;
@@ -20,7 +20,7 @@ export interface DiditVerification {
 export interface DiditConfiguration {
   id: string;
   setting_key: string;
-  setting_value: any;
+  setting_value: unknown;
   description?: string;
   is_active?: boolean;
   updated_by?: string;
@@ -38,7 +38,7 @@ export interface DiditAuditLog {
   performed_by?: string;
   ip_address?: unknown;
   user_agent?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   created_at: string;
 }
 
@@ -57,8 +57,8 @@ export interface DiditSession {
 export interface DiditVerificationResult {
   success: boolean;
   confidence_score: number;
-  extracted_data: any;
-  verification_metadata: any;
+  extracted_data: Record<string, unknown>;
+  verification_metadata: Record<string, unknown>;
   status: VerificationResult;
   error_message?: string;
 }

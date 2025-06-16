@@ -17,4 +17,4 @@ export interface ProfileFieldTemplate {
   roles?: ('admin' | 'observer' | 'roving_observer' | 'parish_coordinator')[];
 }
 
-export type ProfileData = Record<string, any>; 
+export type ProfileData = Record<string, unknown>;
