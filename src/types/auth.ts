@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   email: string;
@@ -7,6 +8,12 @@ export interface User {
   profileImage?: string;
   phoneNumber?: string;
   assignedStation?: string;
+  parish?: string;
+  address?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankRoutingNumber?: string;
+  trn?: string;
   createdAt: string;
   lastLogin?: string;
 }

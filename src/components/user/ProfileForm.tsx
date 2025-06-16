@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { getAllProfileFieldTemplates } from '@/services/profileFieldTemplateService';
 import { ProfileFieldTemplate, ProfileData } from '@/types/profile';
@@ -10,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
@@ -17,6 +19,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [fields, setFields] = useState<ProfileFieldTemplate[]>([]);
   const [profileData, setProfileData] = useState<ProfileData>({});
   const [error, setError] = useState<string | null>(null);
@@ -77,8 +80,17 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
         .eq('id', userId);
       if (error) throw error;
       setSuccess('Profile updated successfully.');
+      toast({
+        title: 'Success',
+        description: 'Profile updated successfully.',
+      });
     } catch (e: any) {
       setError(e.message);
+      toast({
+        title: 'Error',
+        description: e.message,
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -97,7 +109,7 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
             </Alert>
           )}
           {success && (
-            <Alert variant="success">
+            <Alert>
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
@@ -177,4 +189,4 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
       </CardContent>
     </Card>
   );
-}; 
+};

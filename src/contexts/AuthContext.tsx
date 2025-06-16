@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,6 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profileImage: profile.profile_image,
           phoneNumber: profile.phone_number,
           assignedStation: profile.assigned_station,
+          parish: profile.parish,
+          address: profile.address,
+          bankName: profile.bank_name,
+          bankAccountNumber: profile.bank_account_number,
+          bankRoutingNumber: profile.bank_routing_number,
+          trn: profile.trn,
           createdAt: profile.created_at,
           lastLogin: profile.last_login
         };
