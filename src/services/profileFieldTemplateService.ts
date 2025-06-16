@@ -1,9 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import { ProfileFieldTemplate } from '@/types/profile';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/integrations/supabase/client';
+import { ProfileFieldTemplate } from '@/types/profile';
 
 export async function getAllProfileFieldTemplates(): Promise<ProfileFieldTemplate[]> {
   const { data, error } = await supabase
@@ -51,4 +48,4 @@ export async function reorderProfileFieldTemplates(order: number[]): Promise<voi
       .update({ order: i })
       .eq('id', order[i]);
   }
-} 
+}
