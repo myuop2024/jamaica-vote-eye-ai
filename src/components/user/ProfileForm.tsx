@@ -113,18 +113,35 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
-  // Final validation function for select item values
+  // Enhanced validation function for select values
   const isValidSelectValue = (value: any): value is string => {
-    return typeof value === 'string' && value.trim().length > 0;
+    const isValid = typeof value === 'string' && value.trim().length > 0;
+    console.log('Validating select value:', { value, isValid });
+    return isValid;
   };
 
-  // Get safe options with comprehensive validation
-  const getSafeSelectOptions = (options: string[] | undefined): string[] => {
+  // Get safe options with comprehensive validation and logging
+  const getSafeSelectOptions = (options: string[] | undefined, fieldKey: string): string[] => {
+    console.log(`Processing options for field ${fieldKey}:`, options);
+    
     if (!Array.isArray(options)) {
+      console.log(`No options array for field ${fieldKey}`);
       return [];
     }
     
-    return options.filter(isValidSelectValue);
+    const validOptions = options
+      .filter((option, index) => {
+        const isValid = isValidSelectValue(option);
+        if (!isValid) {
+          console.warn(`Invalid option at index ${index} for field ${fieldKey}:`, option);
+        }
+        return isValid;
+      })
+      .map(option => option.trim())
+      .filter(option => option.length > 0);
+    
+    console.log(`Valid options for field ${fieldKey}:`, validOptions);
+    return validOptions;
   };
 
   return (
@@ -148,12 +165,13 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
             .filter(f => f.visible_to_user && (!f.roles || f.roles.includes(user?.role)))
             .sort((a, b) => a.order - b.order)
             .map(field => {
-              // Handle select fields with ultimate safety
+              // Handle select fields with ultimate safety and logging
               if (field.type === 'select') {
-                const safeOptions = getSafeSelectOptions(field.options);
+                const safeOptions = getSafeSelectOptions(field.options, field.field_key);
                 
                 // Don't render select if no safe options
                 if (safeOptions.length === 0) {
+                  console.warn(`No valid options for select field ${field.field_key}, skipping render`);
                   return null;
                 }
                 
@@ -167,13 +185,19 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                     >
                       <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
                       <SelectContent>
-                        {safeOptions
-                          .filter(isValidSelectValue) // One more filter before rendering
-                          .map((option, index) => (
-                            <SelectItem key={`${field.field_key}-${index}`} value={option}>
+                        {safeOptions.map((option, index) => {
+                          // Final safety check before rendering each SelectItem
+                          if (!isValidSelectValue(option)) {
+                            console.error(`Attempting to render invalid SelectItem for ${field.field_key} at index ${index}:`, option);
+                            return null;
+                          }
+                          
+                          return (
+                            <SelectItem key={`${field.field_key}-${index}-${option}`} value={option}>
                               {option}
                             </SelectItem>
-                          ))}
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
@@ -209,7 +233,7 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                   )}
                   {field.type === 'checkbox' && field.options && (
                     <div className="flex flex-col gap-2">
-                      {getSafeSelectOptions(field.options).map(opt => (
+                      {getSafeSelectOptions(field.options, field.field_key).map(opt => (
                         <label key={opt} className="flex items-center gap-2">
                           <input
                             type="checkbox"

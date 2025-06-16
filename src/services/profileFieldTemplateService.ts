@@ -1,4 +1,3 @@
-
 import { ProfileFieldTemplate } from '@/types/profile';
 
 // Mock data for profile field templates since the table doesn't exist in the database
@@ -59,7 +58,7 @@ const defaultTemplates: ProfileFieldTemplate[] = [
       'Saint Thomas',
       'Trelawny',
       'Westmoreland'
-    ],
+    ].filter(parish => parish && parish.trim().length > 0), // Extra safety filter
     required: false,
     visible_to_user: true,
     admin_only: false,
@@ -82,8 +81,21 @@ const defaultTemplates: ProfileFieldTemplate[] = [
 ];
 
 export async function getAllProfileFieldTemplates(): Promise<ProfileFieldTemplate[]> {
-  // Return mock data since the table doesn't exist
-  return Promise.resolve(defaultTemplates);
+  // Log the templates to help debug
+  console.log('Returning profile field templates:', defaultTemplates);
+  
+  // Extra validation to ensure no empty strings in any options arrays
+  const validatedTemplates = defaultTemplates.map(template => {
+    if (template.options && Array.isArray(template.options)) {
+      template.options = template.options.filter(option => 
+        typeof option === 'string' && option.trim().length > 0
+      );
+      console.log(`Template ${template.field_key} has ${template.options.length} valid options`);
+    }
+    return template;
+  });
+  
+  return Promise.resolve(validatedTemplates);
 }
 
 export async function createProfileFieldTemplate(field: Omit<ProfileFieldTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<ProfileFieldTemplate> {
