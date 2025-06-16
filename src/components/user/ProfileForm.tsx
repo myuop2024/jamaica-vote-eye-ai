@@ -110,15 +110,21 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
-  // Helper function to safely filter options
+  // Helper function to safely filter options and ensure they're valid for Select component
   const getValidOptions = (options: string[] | undefined) => {
     if (!options || !Array.isArray(options)) return [];
     return options.filter(opt => 
       opt !== null && 
       opt !== undefined && 
       typeof opt === 'string' && 
-      opt.trim() !== ''
+      opt.trim() !== '' &&
+      opt.length > 0
     );
+  };
+
+  // Helper function to determine if a field should render as a select
+  const shouldRenderAsSelect = (field: ProfileFieldTemplate) => {
+    return field.type === 'select' && getValidOptions(field.options).length > 0;
   };
 
   return (
@@ -167,13 +173,13 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                     required={field.required}
                   />
                 )}
-                {field.type === 'select' && field.options && (
+                {shouldRenderAsSelect(field) && (
                   <Select
                     value={profileData[field.field_key] || ''}
                     onValueChange={v => handleChange(field.field_key, v)}
                     required={field.required}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
                     <SelectContent>
                       {getValidOptions(field.options).map(opt => (
                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>

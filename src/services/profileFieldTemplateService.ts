@@ -38,6 +38,46 @@ const defaultTemplates: ProfileFieldTemplate[] = [
     order: 3,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
+  },
+  {
+    id: 4,
+    label: 'Parish',
+    field_key: 'parish',
+    type: 'select',
+    options: [
+      'Clarendon',
+      'Hanover',
+      'Kingston',
+      'Manchester',
+      'Portland',
+      'Saint Andrew',
+      'Saint Ann',
+      'Saint Catherine',
+      'Saint Elizabeth',
+      'Saint James',
+      'Saint Mary',
+      'Saint Thomas',
+      'Trelawny',
+      'Westmoreland'
+    ],
+    required: false,
+    visible_to_user: true,
+    admin_only: false,
+    order: 4,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 5,
+    label: 'Assigned Station',
+    field_key: 'assigned_station',
+    type: 'text',
+    required: false,
+    visible_to_user: true,
+    admin_only: false,
+    order: 5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 ];
 
