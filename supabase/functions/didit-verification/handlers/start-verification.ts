@@ -97,11 +97,11 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
 
     const { session_id: sessionId } = diditSession;
     // Support multiple possible property names for the portal URL returned by Didit
-    const clientUrl = diditSession.verification_url ||
+    const clientUrl = diditSession.url ||
+      diditSession.verification_url ||
       diditSession.verification_portal_url ||
       diditSession.client_url ||
-      diditSession.portal_url ||
-      diditSession.url;
+      diditSession.portal_url;
 
     // Store the verification record in our database
     const { data: verification, error: dbError } = await supabaseClient
