@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { User } from '@/types/auth';
+import { UserSearch } from './UserSearch';
 import CryptoJS from 'crypto-js';
 
 // Use a simpler emoji picker for now - can be replaced with emoji-mart later
@@ -29,6 +31,10 @@ function decryptMessage(ciphertext: string) {
   }
 }
 
+const dmRoomId = (id1: string, id2: string) => {
+  return id1 < id2 ? `dm-${id1}-${id2}` : `dm-${id2}-${id1}`;
+};
+
 export const ChatWindow: React.FC = () => {
   const { user } = useAuth();
   const {
@@ -48,6 +54,7 @@ export const ChatWindow: React.FC = () => {
   const [editInput, setEditInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [room, setRoom] = useState('');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +63,13 @@ export const ChatWindow: React.FC = () => {
     return () => leaveRoom(room);
     // eslint-disable-next-line
   }, [room]);
+
+  useEffect(() => {
+    if (selectedUser && user) {
+      const dmRoom = dmRoomId(user.id, selectedUser.id);
+      setRoom(dmRoom);
+    }
+  }, [selectedUser, user]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,7 +85,13 @@ export const ChatWindow: React.FC = () => {
       }
       try {
         const { url, name } = await uploadFile(file, room);
-        sendMessage(room, encrypted, 'file', { url, name });
+        sendMessage(
+          room,
+          encrypted,
+          'file',
+          { url, name },
+          selectedUser ? { id: selectedUser.id, name: selectedUser.name } : undefined
+        );
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
       } catch (error) {
@@ -80,7 +100,13 @@ export const ChatWindow: React.FC = () => {
         return;
       }
     } else {
-      sendMessage(room, encrypted);
+      sendMessage(
+        room,
+        encrypted,
+        'text',
+        undefined,
+        selectedUser ? { id: selectedUser.id, name: selectedUser.name } : undefined
+      );
     }
     setInput('');
     setShowEmoji(false);
@@ -109,13 +135,23 @@ export const ChatWindow: React.FC = () => {
 
   return (
     <div className="chat-window border rounded shadow-lg flex flex-col h-[600px] w-full max-w-2xl mx-auto bg-white">
-      <div className="flex items-center border-b p-2 bg-gray-100">
-        <select value={room} onChange={e => setRoom(e.target.value)} className="mr-2 border rounded px-2 py-1">
+      <div className="flex items-center border-b p-2 bg-gray-100 space-x-2">
+        <select value={room} onChange={e => { setSelectedUser(null); setRoom(e.target.value); }} className="border rounded px-2 py-1">
           <option value="">Select Room</option>
           <option value="admin">Admin</option>
           <option value={`parish-${user?.assignedStation}`}>Parish Room</option>
           <option value={`roving-${user?.assignedStation}`}>Roving Room</option>
         </select>
+        {selectedUser ? (
+          <div className="flex items-center text-sm">
+            <span>DM: {selectedUser.name}</span>
+            <button onClick={() => { setSelectedUser(null); setRoom(''); }} className="ml-1 text-red-500 text-xs">✕</button>
+          </div>
+        ) : (
+          <div className="flex-1">
+            <UserSearch onSelect={(u) => setSelectedUser(u)} />
+          </div>
+        )}
         <span className="ml-auto text-xs text-gray-500">Online: {Object.values(onlineUsers).join(', ')}</span>
       </div>
       <div className="flex-1 overflow-y-auto p-4 bg-white">

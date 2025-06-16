@@ -14,6 +14,8 @@ export interface ChatMessage {
   room: string;
   senderId: string;
   senderName: string;
+  receiverId?: string;
+  receiverName?: string;
   content: string;
   type: 'text' | 'file';
   fileUrl?: string;
@@ -26,7 +28,13 @@ export interface ChatMessage {
 
 export interface ChatContextType {
   messages: ChatMessage[];
-  sendMessage: (room: string, content: string, type?: 'text' | 'file', fileMeta?: { url: string; name: string }) => void;
+  sendMessage: (
+    room: string,
+    content: string,
+    type?: 'text' | 'file',
+    fileMeta?: { url: string; name: string },
+    receiver?: { id: string; name: string }
+  ) => void;
   editMessage: (msgId: string, newContent: string) => void;
   deleteMessage: (msgId: string) => void;
   joinRoom: (room: string) => void;
@@ -142,7 +150,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user, currentRoom]);
 
-  const sendMessage = async (room: string, content: string, type: 'text' | 'file' = 'text', fileMeta?: { url: string; name: string }) => {
+  const sendMessage = async (
+    room: string,
+    content: string,
+    type: 'text' | 'file' = 'text',
+    fileMeta?: { url: string; name: string },
+    receiver?: { id: string; name: string }
+  ) => {
     if (!user) {
       console.error('Cannot send message: user not authenticated');
       return;
@@ -153,6 +167,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       room,
       senderId: user.id,
       senderName: user.name,
+      receiverId: receiver?.id,
+      receiverName: receiver?.name,
       content,
       type,
       fileUrl: fileMeta?.url,
@@ -182,6 +198,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Audit/notify
       if (user) {
         await notifyChatEvent(user.id, 'chat_message_sent', `Message sent in ${room}`, { msg });
+        if (receiver) {
+          await notifyChatEvent(user.id, 'chat_direct_message', `Direct message to ${receiver.name}`, { msg });
+        }
         if (type === 'file' && fileMeta) {
           await notifyChatEvent(user.id, 'chat_file_uploaded', `File uploaded in ${room}: ${fileMeta.name}`, { file: fileMeta });
         }
