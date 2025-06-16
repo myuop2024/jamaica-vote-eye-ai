@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Shield, Search, Eye, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface VerificationDocument {
   id: string;
@@ -37,6 +38,7 @@ export const VerificationCenter: React.FC = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [verificationNotes, setVerificationNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified' | 'rejected'>('all');
 
   useEffect(() => {
     fetchDocuments();
@@ -45,6 +47,10 @@ export const VerificationCenter: React.FC = () => {
   useEffect(() => {
     filterDocuments();
   }, [documents, searchTerm]);
+
+  useEffect(() => {
+    filterDocuments();
+  }, [statusFilter]);
 
   const fetchDocuments = async () => {
     try {
@@ -80,6 +86,10 @@ export const VerificationCenter: React.FC = () => {
         doc.profiles.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         doc.document_type.toLowerCase().includes(searchTerm.toLowerCase())
       );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(doc => doc.profiles.verification_status === statusFilter);
     }
 
     setFilteredDocuments(filtered);
@@ -172,7 +182,7 @@ export const VerificationCenter: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -183,6 +193,20 @@ export const VerificationCenter: React.FC = () => {
                   className="pl-10"
                 />
               </div>
+            </div>
+
+            <div className="w-full md:w-60">
+              <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
