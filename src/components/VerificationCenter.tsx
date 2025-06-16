@@ -217,48 +217,15 @@ export const VerificationCenter: React.FC = () => {
         currentUserEmail: user?.email
       });
 
-      // Temporary: Try edge function first, fallback to direct update if it fails
-      let data, error;
+      // Use RPC function directly until edge function is deployed
+      const { data, error } = await supabase.rpc('admin_cancel_verification', {
+        verification_id: verificationId
+      });
       
-      try {
-        const response = await supabase.functions.invoke('didit-verification', {
-          body: {
-            action: 'cancel_verification',
-            verification_id: verificationId,
-            user_id: user?.id,
-          },
-        });
-        data = response.data;
-        error = response.error;
-      } catch (fnError) {
-        console.log('Edge function failed, using direct update:', fnError);
-        
-        // Check if user is admin
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user?.id)
-          .single();
-          
-        if (profile?.role === 'admin') {
-          // Admin can update directly via RPC or policy
-          const { error: updateError } = await supabase.rpc('admin_cancel_verification', {
-            verification_id: verificationId
-          });
-          
-          if (!updateError) {
-            data = { success: true };
-          } else {
-            error = updateError;
-          }
-        } else {
-          error = new Error('Not authorized to cancel verification');
-        }
-      }
-      
-      console.log('Cancel response:', { data, error });
+      console.log('Cancel response:', { success: data, error });
 
-      if (error || !data?.success) throw error || new Error(data?.error);
+      if (error) throw error;
+      if (!data) throw new Error('Failed to cancel verification');
 
       toast({
         title: 'Verification Cancelled',
