@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import jwt from 'jsonwebtoken';
@@ -5,12 +6,12 @@ import jwt from 'jsonwebtoken';
 const router = express.Router();
 
 // Middleware: Authenticate and attach user info
-router.use('/ws', (req, res, next) => {
+router.use('/ws', (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).send('No token');
   try {
     // Replace with your JWT secret
-    const user = jwt.verify(token, process.env.JWT_SECRET!);
+    const user = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
     (req as any).user = user;
     next();
   } catch {
@@ -26,11 +27,7 @@ router.use(
     changeOrigin: true,
     ws: true,
     pathRewrite: { '^/api/chat/ws': '/' },
-    onProxyReqWs: (proxyReq, req, socket, options, head) => {
-      // Optionally inject user info into headers or query
-      // e.g., proxyReq.setHeader('x-user-id', (req as any).user.id);
-    },
   })
 );
 
-export default router; 
+export default router;

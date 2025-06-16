@@ -1,10 +1,13 @@
-
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 import { notifyChatEvent } from '@/services/notificationService';
+
+// Generate UUID using crypto API instead of uuid package
+const generateUUID = () => {
+  return crypto.randomUUID();
+};
 
 export interface ChatMessage {
   id: string;
@@ -146,7 +149,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const msg: ChatMessage = {
-      id: uuidv4(),
+      id: generateUUID(),
       room,
       senderId: user.id,
       senderName: user.name,
