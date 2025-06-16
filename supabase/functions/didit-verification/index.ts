@@ -7,6 +7,8 @@ import { handleCheckVerificationStatus } from './handlers/check-status.ts'
 import { handleDiditWebhook } from './handlers/handle-webhook.ts'
 import { handleCancelVerification } from './handlers/cancel-verification.ts'
 
+// Updated: Added cancel verification functionality
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
