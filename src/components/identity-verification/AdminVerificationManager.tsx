@@ -59,7 +59,17 @@ export const AdminVerificationManager: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setVerifications(data || []);
+      
+      // Transform the data to match our DiditVerification type
+      const transformedData: VerificationWithProfile[] = (data || []).map(item => ({
+        ...item,
+        extracted_data: (item.extracted_data as Record<string, unknown>) || {},
+        verification_metadata: (item.verification_metadata as Record<string, unknown>) || {},
+        didit_response: (item.didit_response as Record<string, unknown>) || {},
+        profiles: item.profiles
+      }));
+      
+      setVerifications(transformedData);
     } catch (error: any) {
       console.error('Error fetching verifications:', error);
       toast({
@@ -81,7 +91,14 @@ export const AdminVerificationManager: React.FC = () => {
         .limit(50);
 
       if (error) throw error;
-      setAuditLogs(data || []);
+      
+      // Transform the data to match our DiditAuditLog type
+      const transformedLogs: DiditAuditLog[] = (data || []).map(item => ({
+        ...item,
+        metadata: (item.metadata as Record<string, unknown>) || {}
+      }));
+      
+      setAuditLogs(transformedLogs);
     } catch (error: any) {
       console.error('Error fetching audit logs:', error);
     }
@@ -369,7 +386,7 @@ export const AdminVerificationManager: React.FC = () => {
                 </div>
               )}
 
-              {selectedVerification.extracted_data && (
+              {selectedVerification.extracted_data && Object.keys(selectedVerification.extracted_data).length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-2">Extracted Data</h4>
                   <div className="bg-gray-50 border rounded-lg p-4">

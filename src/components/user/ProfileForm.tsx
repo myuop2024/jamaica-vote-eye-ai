@@ -28,39 +28,24 @@ const JAMAICA_PARISHES = [
 ];
 
 export const ProfileForm: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [templates, setTemplates] = useState<ProfileFieldTemplate[]>([]);
   const [profileData, setProfileData] = useState<ProfileData>({});
 
   useEffect(() => {
-    fetchFieldTemplates();
+    // Skip fetching templates since the table doesn't exist in the current schema
     if (user) {
       setProfileData({
         name: user.name || '',
-        phone_number: user.phone_number || '',
+        phone_number: user.phoneNumber || '',
         address: user.address || '',
         parish: user.parish || '',
-        assigned_station: user.assigned_station || ''
+        assigned_station: user.assignedStation || ''
       });
     }
   }, [user]);
-
-  const fetchFieldTemplates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profile_field_templates')
-        .select('*')
-        .eq('visible_to_user', true)
-        .order('order');
-
-      if (error) throw error;
-      setTemplates(data || []);
-    } catch (error) {
-      console.error('Error fetching field templates:', error);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +68,7 @@ export const ProfileForm: React.FC = () => {
 
       if (error) throw error;
 
-      await refreshUser();
+      // Note: refreshUser is not available in the current AuthContext
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",

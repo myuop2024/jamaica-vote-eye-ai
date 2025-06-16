@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ProfileForm } from '@/components/user/ProfileForm';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,9 +11,9 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
-      <ProfileForm userId={user.id} />
+      <ProfileForm />
     </div>
   );
 };
 
-export default ProfilePage; 
+export default ProfilePage;
