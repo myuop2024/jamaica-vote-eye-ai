@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,17 +7,25 @@ import CryptoJS from 'crypto-js';
 // Use a simpler emoji picker for now - can be replaced with emoji-mart later
 const EMOJIS = ['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉'];
 
-const ENCRYPTION_KEY = process.env.REACT_APP_CHAT_ENCRYPTION_KEY || 'default_secret_key';
+const ENCRYPTION_KEY = process.env.REACT_APP_CHAT_ENCRYPTION_KEY || 'fallback_encryption_key_for_development';
 
 function encryptMessage(message: string) {
-  return CryptoJS.AES.encrypt(message, ENCRYPTION_KEY).toString();
+  try {
+    return CryptoJS.AES.encrypt(message, ENCRYPTION_KEY).toString();
+  } catch (error) {
+    console.error('Encryption failed:', error);
+    return message; // Return unencrypted as fallback
+  }
 }
+
 function decryptMessage(ciphertext: string) {
   try {
     const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
-    return bytes.toString(CryptoJS.enc.Utf8) || ciphertext;
-  } catch {
-    return ciphertext;
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    return decrypted || ciphertext;
+  } catch (error) {
+    console.error('Decryption failed:', error);
+    return ciphertext; // Return as-is if decryption fails
   }
 }
 
@@ -60,10 +69,16 @@ export const ChatWindow: React.FC = () => {
         alert('File size exceeds 5GB limit.');
         return;
       }
-      const { url, name } = await uploadFile(file, room);
-      sendMessage(room, encrypted, 'file', { url, name });
-      setFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      try {
+        const { url, name } = await uploadFile(file, room);
+        sendMessage(room, encrypted, 'file', { url, name });
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } catch (error) {
+        console.error('File upload failed:', error);
+        alert('File upload failed. Please try again.');
+        return;
+      }
     } else {
       sendMessage(room, encrypted);
     }
@@ -192,4 +207,4 @@ export const ChatWindow: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};
