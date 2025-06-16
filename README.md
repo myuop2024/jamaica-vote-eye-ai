@@ -71,3 +71,7 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Chat connection
+
+The chat system uses a WebSocket endpoint served by the local backend. When opening the WebSocket connection, the client now includes the JWT token as a `token` query parameter. The backend verifies this token before proxying the connection to the chat service.

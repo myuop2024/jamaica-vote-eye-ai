@@ -7,12 +7,15 @@ const router = express.Router();
 
 // Middleware: Authenticate and attach user info
 router.use('/ws', (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  let token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    token = (req.query.token as string | undefined) ?? '';
+  }
   if (!token) {
     res.status(401).send('No token');
     return;
   }
-  
+
   try {
     // Replace with your JWT secret
     const user = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
