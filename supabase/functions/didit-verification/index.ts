@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from './_shared/config.ts'
@@ -6,6 +5,7 @@ import { handleTestConnection } from './handlers/test-connection.ts'
 import { handleStartVerification } from './handlers/start-verification.ts'
 import { handleCheckVerificationStatus } from './handlers/check-status.ts'
 import { handleDiditWebhook } from './handlers/handle-webhook.ts'
+import { handleCancelVerification } from './handlers/cancel-verification.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -44,7 +44,7 @@ serve(async (req) => {
       );
     }
 
-    const { verification_method, document_type, user_id, session_id } = body;
+    const { verification_method, document_type, user_id, session_id, verification_id } = body;
 
     switch (action) {
       case 'test_connection':
@@ -59,6 +59,22 @@ serve(async (req) => {
       
       case 'check_status':
         return await handleCheckVerificationStatus(supabaseClient, session_id);
+      
+      case 'cancel_verification':
+        // Allow admins to cancel any verification or users to cancel their own pending verification
+        if (user.id !== user_id) {
+          // Check if user has admin role
+          const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+          if (profile?.role !== 'admin') {
+            throw new Error('Only admins can cancel other users\' verifications.');
+          }
+        }
+        return await handleCancelVerification(supabaseClient, verification_id || session_id || '');
       
       default:
         throw new Error(`Invalid action: ${action}`);

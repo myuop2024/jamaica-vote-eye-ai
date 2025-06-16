@@ -207,12 +207,19 @@ export const VerificationCenter: React.FC = () => {
     if (!window.confirm('Cancel this verification attempt? The user will need to start over.')) return;
     try {
       setCancelingId(verificationId);
-      const { error } = await supabase
-        .from('didit_verifications')
-        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-        .eq('id', verificationId);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke('didit-verification', {
+        body: {
+          action: 'cancel_verification',
+          verification_id: verificationId,
+          user_id: user?.id,
+        },
+      });
+
+      if (error || !data?.success) throw error || new Error(data?.error);
 
       toast({
         title: 'Verification Cancelled',
