@@ -220,7 +220,6 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                     <SelectValue placeholder="Select parish" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No parish selected</SelectItem>
                     {JAMAICAN_PARISHES.map((parish) => (
                       <SelectItem key={parish} value={parish}>
                         {parish}
