@@ -1,13 +1,18 @@
+// Version: 25 - Added cancel verification functionality
+// Last updated: 2024-01-16T04:10:00.000Z
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// Import configuration
 import { corsHeaders } from './_shared/config.ts'
+
+// Import handlers
 import { handleTestConnection } from './handlers/test-connection.ts'
 import { handleStartVerification } from './handlers/start-verification.ts'
 import { handleCheckVerificationStatus } from './handlers/check-status.ts'
 import { handleDiditWebhook } from './handlers/handle-webhook.ts'
 import { handleCancelVerification } from './handlers/cancel-verification.ts'
-
-// Updated: Added cancel verification functionality
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
