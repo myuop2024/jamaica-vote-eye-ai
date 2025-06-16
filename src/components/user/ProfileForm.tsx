@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { getAllProfileFieldTemplates } from '@/services/profileFieldTemplateService';
 import { ProfileFieldTemplate, ProfileData } from '@/types/profile';
@@ -24,7 +23,16 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
 
   useEffect(() => {
     getAllProfileFieldTemplates()
-      .then(setFields)
+      .then(templateFields => {
+        console.log('Profile field templates received:', templateFields);
+        // Log each field's options to debug
+        templateFields.forEach(field => {
+          if (field.type === 'select') {
+            console.log(`Field ${field.field_key} options:`, field.options);
+          }
+        });
+        setFields(templateFields);
+      })
       .catch(e => setError(e.message));
     
     // Fetch user profile data from the existing columns
@@ -112,19 +120,35 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
 
   // Helper function to safely filter options and ensure they're valid for Select component
   const getValidOptions = (options: string[] | undefined) => {
-    if (!options || !Array.isArray(options)) return [];
-    return options.filter(opt => 
-      opt !== null && 
-      opt !== undefined && 
-      typeof opt === 'string' && 
-      opt.trim() !== '' &&
-      opt.length > 0
-    );
+    if (!options || !Array.isArray(options)) {
+      console.log('Options is not a valid array:', options);
+      return [];
+    }
+    
+    const validOptions = options.filter(opt => {
+      const isValid = opt !== null && 
+        opt !== undefined && 
+        typeof opt === 'string' && 
+        opt.trim() !== '' &&
+        opt.length > 0;
+      
+      if (!isValid) {
+        console.log('Invalid option filtered out:', opt, typeof opt);
+      }
+      
+      return isValid;
+    });
+    
+    console.log('Valid options after filtering:', validOptions);
+    return validOptions;
   };
 
   // Helper function to determine if a field should render as a select
   const shouldRenderAsSelect = (field: ProfileFieldTemplate) => {
-    return field.type === 'select' && getValidOptions(field.options).length > 0;
+    const validOptions = getValidOptions(field.options);
+    const shouldRender = field.type === 'select' && validOptions.length > 0;
+    console.log(`Should render select for ${field.field_key}:`, shouldRender, 'Valid options count:', validOptions.length);
+    return shouldRender;
   };
 
   return (
@@ -147,74 +171,89 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
           {fields
             .filter(f => f.visible_to_user && (!f.roles || f.roles.includes(user?.role)))
             .sort((a, b) => a.order - b.order)
-            .map(field => (
-              <div key={field.field_key} className="space-y-2">
-                <Label>{field.label}{field.required && ' *'}</Label>
-                {field.type === 'text' && (
-                  <Input
-                    value={profileData[field.field_key] || ''}
-                    onChange={e => handleChange(field.field_key, e.target.value)}
-                    required={field.required}
-                  />
-                )}
-                {field.type === 'number' && (
-                  <Input
-                    type="number"
-                    value={profileData[field.field_key] || ''}
-                    onChange={e => handleChange(field.field_key, e.target.value)}
-                    required={field.required}
-                  />
-                )}
-                {field.type === 'date' && (
-                  <Input
-                    type="date"
-                    value={profileData[field.field_key] || ''}
-                    onChange={e => handleChange(field.field_key, e.target.value)}
-                    required={field.required}
-                  />
-                )}
-                {shouldRenderAsSelect(field) && (
-                  <Select
-                    value={profileData[field.field_key] || ''}
-                    onValueChange={v => handleChange(field.field_key, v)}
-                    required={field.required}
-                  >
-                    <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
-                    <SelectContent>
+            .map(field => {
+              console.log(`Rendering field: ${field.field_key}, type: ${field.type}`);
+              return (
+                <div key={field.field_key} className="space-y-2">
+                  <Label>{field.label}{field.required && ' *'}</Label>
+                  {field.type === 'text' && (
+                    <Input
+                      value={profileData[field.field_key] || ''}
+                      onChange={e => handleChange(field.field_key, e.target.value)}
+                      required={field.required}
+                    />
+                  )}
+                  {field.type === 'number' && (
+                    <Input
+                      type="number"
+                      value={profileData[field.field_key] || ''}
+                      onChange={e => handleChange(field.field_key, e.target.value)}
+                      required={field.required}
+                    />
+                  )}
+                  {field.type === 'date' && (
+                    <Input
+                      type="date"
+                      value={profileData[field.field_key] || ''}
+                      onChange={e => handleChange(field.field_key, e.target.value)}
+                      required={field.required}
+                    />
+                  )}
+                  {shouldRenderAsSelect(field) && (
+                    <Select
+                      value={profileData[field.field_key] || ''}
+                      onValueChange={v => handleChange(field.field_key, v)}
+                      required={field.required}
+                    >
+                      <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
+                      <SelectContent>
+                        {getValidOptions(field.options).map((opt, index) => {
+                          console.log(`Rendering SelectItem ${index} for ${field.field_key}:`, JSON.stringify(opt), 'type:', typeof opt, 'length:', opt.length);
+                          
+                          // Extra safety check before rendering
+                          if (!opt || typeof opt !== 'string' || opt.trim() === '') {
+                            console.error('Attempted to render SelectItem with invalid value:', opt);
+                            return null;
+                          }
+                          
+                          return (
+                            <SelectItem key={`${field.field_key}-${index}-${opt}`} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {field.type === 'checkbox' && field.options && (
+                    <div className="flex flex-col gap-2">
                       {getValidOptions(field.options).map(opt => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        <label key={opt} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={Array.isArray(profileData[field.field_key]) && profileData[field.field_key].includes(opt)}
+                            onChange={e => {
+                              const arr = Array.isArray(profileData[field.field_key]) ? [...profileData[field.field_key]] : [];
+                              if (e.target.checked) arr.push(opt);
+                              else arr.splice(arr.indexOf(opt), 1);
+                              handleChange(field.field_key, arr);
+                            }}
+                          />
+                          {opt}
+                        </label>
                       ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                {field.type === 'checkbox' && field.options && (
-                  <div className="flex flex-col gap-2">
-                    {getValidOptions(field.options).map(opt => (
-                      <label key={opt} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={Array.isArray(profileData[field.field_key]) && profileData[field.field_key].includes(opt)}
-                          onChange={e => {
-                            const arr = Array.isArray(profileData[field.field_key]) ? [...profileData[field.field_key]] : [];
-                            if (e.target.checked) arr.push(opt);
-                            else arr.splice(arr.indexOf(opt), 1);
-                            handleChange(field.field_key, arr);
-                          }}
-                        />
-                        {opt}
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {field.type === 'file' && (
-                  <Input
-                    type="file"
-                    onChange={e => handleChange(field.field_key, e.target.files?.[0])}
-                    required={field.required}
-                  />
-                )}
-              </div>
-            ))}
+                    </div>
+                  )}
+                  {field.type === 'file' && (
+                    <Input
+                      type="file"
+                      onChange={e => handleChange(field.field_key, e.target.files?.[0])}
+                      required={field.required}
+                    />
+                  )}
+                </div>
+              );
+            })}
           <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save Profile'}</Button>
         </form>
       </CardContent>
