@@ -7,7 +7,7 @@ import CryptoJS from 'crypto-js';
 // Use a simpler emoji picker for now - can be replaced with emoji-mart later
 const EMOJIS = ['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉'];
 
-const ENCRYPTION_KEY = process.env.REACT_APP_CHAT_ENCRYPTION_KEY || 'fallback_encryption_key_for_development';
+const ENCRYPTION_KEY = import.meta.env.VITE_CHAT_ENCRYPTION_KEY || 'fallback_encryption_key_for_development';
 
 function encryptMessage(message: string) {
   try {
