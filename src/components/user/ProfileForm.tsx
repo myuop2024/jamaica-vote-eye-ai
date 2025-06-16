@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { getAllProfileFieldTemplates } from '@/services/profileFieldTemplateService';
 import { ProfileFieldTemplate, ProfileData } from '@/types/profile';
@@ -119,6 +118,40 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
+  // Much stricter validation for select options
+  const getValidSelectOptions = (options: string[] | undefined): string[] => {
+    if (!Array.isArray(options)) {
+      console.log('Options is not an array:', options);
+      return [];
+    }
+    
+    const validOptions = options.filter(opt => {
+      // Very strict validation
+      const isValidString = typeof opt === 'string';
+      const hasContent = isValidString && opt.length > 0;
+      const hasNonWhitespaceContent = hasContent && opt.trim().length > 0;
+      const isNotEmptyAfterTrim = hasNonWhitespaceContent && opt.trim() !== '';
+      
+      const isValid = isValidString && hasContent && hasNonWhitespaceContent && isNotEmptyAfterTrim;
+      
+      if (!isValid) {
+        console.log('Invalid option filtered out:', { 
+          opt, 
+          type: typeof opt, 
+          isValidString, 
+          hasContent, 
+          hasNonWhitespaceContent, 
+          isNotEmptyAfterTrim 
+        });
+      }
+      
+      return isValid;
+    });
+    
+    console.log('Valid options after strict filtering:', validOptions);
+    return validOptions;
+  };
+
   // Helper function to safely filter options and ensure they're valid for Select component
   const getValidOptions = (options: string[] | undefined) => {
     if (!options || !Array.isArray(options)) {
@@ -146,7 +179,7 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
 
   // Helper function to determine if a field should render as a select
   const shouldRenderAsSelect = (field: ProfileFieldTemplate) => {
-    const validOptions = getValidOptions(field.options);
+    const validOptions = getValidSelectOptions(field.options);
     const shouldRender = field.type === 'select' && validOptions.length > 0;
     console.log(`Should render select for ${field.field_key}:`, shouldRender, 'Valid options count:', validOptions.length);
     return shouldRender;
@@ -186,6 +219,49 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
             .sort((a, b) => a.order - b.order)
             .map(field => {
               console.log(`Rendering field: ${field.field_key}, type: ${field.type}`);
+              
+              // For select fields, get valid options and only render if we have any
+              if (field.type === 'select') {
+                const validOptions = getValidSelectOptions(field.options);
+                
+                if (validOptions.length === 0) {
+                  console.log(`Skipping select field ${field.field_key} - no valid options`);
+                  return null;
+                }
+                
+                console.log(`Rendering select field ${field.field_key} with ${validOptions.length} valid options:`, validOptions);
+                
+                return (
+                  <div key={field.field_key} className="space-y-2">
+                    <Label>{field.label}{field.required && ' *'}</Label>
+                    <Select
+                      value={profileData[field.field_key] || ''}
+                      onValueChange={v => handleChange(field.field_key, v)}
+                      required={field.required}
+                    >
+                      <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
+                      <SelectContent>
+                        {validOptions.map((opt, index) => {
+                          console.log(`About to render SelectItem ${index} for ${field.field_key}:`, { 
+                            value: opt, 
+                            type: typeof opt, 
+                            length: opt.length,
+                            trimmed: opt.trim(),
+                            trimmedLength: opt.trim().length
+                          });
+                          
+                          return (
+                            <SelectItem key={`${field.field_key}-${index}-${opt}`} value={opt}>
+                              {opt}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              }
+              
               return (
                 <div key={field.field_key} className="space-y-2">
                   <Label>{field.label}{field.required && ' *'}</Label>
@@ -212,31 +288,9 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                       required={field.required}
                     />
                   )}
-                  {shouldRenderAsSelect(field) && (
-                    <Select
-                      value={profileData[field.field_key] || ''}
-                      onValueChange={v => handleChange(field.field_key, v)}
-                      required={field.required}
-                    >
-                      <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
-                      <SelectContent>
-                        {getValidOptions(field.options)
-                          .filter(opt => isValidSelectItemValue(opt))
-                          .map((opt, index) => {
-                            console.log(`Rendering SelectItem ${index} for ${field.field_key}:`, JSON.stringify(opt), 'type:', typeof opt, 'length:', opt.length);
-                            
-                            return (
-                              <SelectItem key={`${field.field_key}-${index}-${opt}`} value={opt}>
-                                {opt}
-                              </SelectItem>
-                            );
-                          })}
-                      </SelectContent>
-                    </Select>
-                  )}
                   {field.type === 'checkbox' && field.options && (
                     <div className="flex flex-col gap-2">
-                      {getValidOptions(field.options).map(opt => (
+                      {getValidSelectOptions(field.options).map(opt => (
                         <label key={opt} className="flex items-center gap-2">
                           <input
                             type="checkbox"
