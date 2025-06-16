@@ -22,4 +22,14 @@ export async function getUserNotifications(userId: string) {
 
 export async function markNotificationRead(id: number) {
   return supabase.from('notifications').update({ read: true }).eq('id', id);
+}
+
+export async function notifyChatEvent(userId: string, type: string, message: string, data?: any) {
+  return createNotification(
+    userId,
+    type,
+    'Chat Notification',
+    message,
+    data
+  );
 } 
