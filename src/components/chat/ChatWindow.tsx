@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { Picker } from 'emoji-mart';
-import 'emoji-mart/css/emoji-mart.css';
 import CryptoJS from 'crypto-js';
+
+// Use a simpler emoji picker for now - can be replaced with emoji-mart later
+const EMOJIS = ['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉'];
 
 const ENCRYPTION_KEY = process.env.REACT_APP_CHAT_ENCRYPTION_KEY || 'default_secret_key';
 
@@ -87,16 +88,15 @@ export const ChatWindow: React.FC = () => {
     if (!user) return false;
     if (msg.senderId === user.id) return true;
     if (user.role === 'admin') return true;
-    if ((user.role === 'parish_coordinator' || user.role === 'roving_observer') && msg.room.includes(user.assignedStation)) return true;
+    if ((user.role === 'parish_coordinator' || user.role === 'roving_observer') && msg.room.includes(user.assignedStation || '')) return true;
     return false;
   };
 
   return (
-    <div className="chat-window border rounded shadow-lg flex flex-col h-[600px] w-full max-w-2xl mx-auto">
+    <div className="chat-window border rounded shadow-lg flex flex-col h-[600px] w-full max-w-2xl mx-auto bg-white">
       <div className="flex items-center border-b p-2 bg-gray-100">
-        <select value={room} onChange={e => setRoom(e.target.value)} className="mr-2">
+        <select value={room} onChange={e => setRoom(e.target.value)} className="mr-2 border rounded px-2 py-1">
           <option value="">Select Room</option>
-          {/* Example room options, replace with dynamic logic */}
           <option value="admin">Admin</option>
           <option value={`parish-${user?.assignedStation}`}>Parish Room</option>
           <option value={`roving-${user?.assignedStation}`}>Roving Room</option>
@@ -106,52 +106,73 @@ export const ChatWindow: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-4 bg-white">
         {messages.filter(m => m.room === room).map((msg, i) => (
           <div key={msg.id} className={`mb-2 ${msg.senderId === user?.id ? 'text-right' : 'text-left'}`}> 
-            <div className="inline-block bg-gray-200 rounded px-2 py-1">
-              <b>{msg.senderName}</b>{' '}
+            <div className="inline-block bg-gray-200 rounded px-2 py-1 max-w-xs">
+              <b className="text-sm">{msg.senderName}</b>{' '}
               {msg.deleted ? <i className="text-red-500">(deleted)</i> : (
                 editingMsgId === msg.id ? (
-                  <>
-                    <input value={editInput} onChange={e => setEditInput(e.target.value)} className="border px-1" />
-                    <button onClick={handleEditSave} className="ml-1 text-blue-600">Save</button>
-                    <button onClick={() => setEditingMsgId(null)} className="ml-1 text-gray-600">Cancel</button>
-                  </>
+                  <div className="mt-1">
+                    <input value={editInput} onChange={e => setEditInput(e.target.value)} className="border px-1 py-1 rounded w-full" />
+                    <div className="mt-1">
+                      <button onClick={handleEditSave} className="mr-1 text-blue-600 text-xs">Save</button>
+                      <button onClick={() => setEditingMsgId(null)} className="text-gray-600 text-xs">Cancel</button>
+                    </div>
+                  </div>
                 ) : (
-                  <span>
+                  <div className="mt-1">
                     {msg.type === 'file' ? (
-                      <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="underline">{msg.fileName}</a>
+                      <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">{msg.fileName}</a>
                     ) : (
-                      <span>{decryptMessage(msg.content)}</span>
+                      <span className="break-words">{decryptMessage(msg.content)}</span>
                     )}
                     {msg.edited && <span className="text-xs text-gray-400 ml-1">(edited)</span>}
-                  </span>
+                  </div>
                 )
               )}
-              <span className="ml-2 text-xs text-gray-500">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-              <span className="ml-2 text-xs">
-                {msg.status === 'sending' && '🕓'}
-                {msg.status === 'sent' && '✅'}
-                {msg.status === 'delivered' && '📬'}
-                {msg.status === 'read' && '👁️'}
-                {msg.status === 'failed' && '❌'}
-              </span>
-              {canEditOrDelete(msg) && !msg.deleted && (
-                <>
-                  <button onClick={() => handleEdit(msg.id, msg.content)} className="ml-2 text-blue-600 text-xs">Edit</button>
-                  <button onClick={() => deleteMessage(msg.id)} className="ml-1 text-red-600 text-xs">Delete</button>
-                </>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-gray-500">{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                <div className="flex items-center">
+                  <span className="text-xs mr-2">
+                    {msg.status === 'sending' && '🕓'}
+                    {msg.status === 'sent' && '✅'}
+                    {msg.status === 'delivered' && '📬'}
+                    {msg.status === 'read' && '👁️'}
+                    {msg.status === 'failed' && '❌'}
+                  </span>
+                  {canEditOrDelete(msg) && !msg.deleted && (
+                    <div>
+                      <button onClick={() => handleEdit(msg.id, msg.content)} className="mr-1 text-blue-600 text-xs">Edit</button>
+                      <button onClick={() => deleteMessage(msg.id)} className="text-red-600 text-xs">Delete</button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         ))}
         <div ref={chatEndRef} />
       </div>
       <div className="p-2 border-t bg-gray-50 flex items-center">
-        <button onClick={() => setShowEmoji(v => !v)} className="mr-2">😊</button>
-        {showEmoji && (
-          <div className="absolute bottom-16 left-2 z-10">
-            <Picker onSelect={emoji => setInput(input + emoji.native)} showPreview={false} showSkinTones={false} />
-          </div>
-        )}
+        <div className="relative">
+          <button onClick={() => setShowEmoji(v => !v)} className="mr-2 p-1 hover:bg-gray-200 rounded">😊</button>
+          {showEmoji && (
+            <div className="absolute bottom-8 left-0 z-10 bg-white border rounded shadow-lg p-2">
+              <div className="grid grid-cols-5 gap-1">
+                {EMOJIS.map(emoji => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      setInput(input + emoji);
+                      setShowEmoji(false);
+                    }}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <input
           className="flex-1 border rounded px-2 py-1 mr-2"
           value={input}
@@ -165,9 +186,9 @@ export const ChatWindow: React.FC = () => {
           className="hidden"
           onChange={e => setFile(e.target.files?.[0] || null)}
         />
-        <button onClick={() => fileInputRef.current?.click()} className="mr-2">📎</button>
-        {file && <span className="mr-2 text-xs">{file.name}</span>}
-        <button onClick={handleSend} className="bg-blue-600 text-white px-3 py-1 rounded">Send</button>
+        <button onClick={() => fileInputRef.current?.click()} className="mr-2 p-1 hover:bg-gray-200 rounded">📎</button>
+        {file && <span className="mr-2 text-xs bg-blue-100 px-2 py-1 rounded">{file.name}</span>}
+        <button onClick={handleSend} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Send</button>
       </div>
     </div>
   );

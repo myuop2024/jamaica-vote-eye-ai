@@ -106,6 +106,9 @@ const DialogDescription = React.forwardRef<
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
 
+// Legacy aliases for backward compatibility
+const DialogActions = DialogFooter
+
 export {
   Dialog,
   DialogPortal,
@@ -117,4 +120,5 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
+  DialogActions,
 }
