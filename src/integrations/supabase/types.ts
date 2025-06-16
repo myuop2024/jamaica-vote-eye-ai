@@ -906,6 +906,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_cancel_verification: {
+        Args: { verification_id: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { p_user_id: string }
         Returns: string

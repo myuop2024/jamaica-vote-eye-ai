@@ -1,3 +1,4 @@
+
 import { DIDIT_API_KEY, DIDIT_API_BASE_URL, DIDIT_WORKFLOW_ID, corsHeaders } from '../_shared/config.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -96,12 +97,15 @@ export async function handleStartVerification(supabaseClient: any, userId: strin
     console.log('Didit session created:', diditSession);
 
     const { session_id: sessionId } = diditSession;
-    // Support multiple possible property names for the portal URL returned by Didit
-    const clientUrl = diditSession.url ||
-      diditSession.verification_url ||
-      diditSession.verification_portal_url ||
-      diditSession.client_url ||
-      diditSession.portal_url;
+    // Extract the portal URL from the Didit response - it's in the 'url' property
+    const clientUrl = diditSession.url;
+
+    if (!clientUrl) {
+      console.error('No verification portal URL in Didit response:', diditSession);
+      throw new Error('Didit API did not return a verification portal URL');
+    }
+
+    console.log('Extracted verification portal URL:', clientUrl);
 
     // Store the verification record in our database
     const { data: verification, error: dbError } = await supabaseClient
