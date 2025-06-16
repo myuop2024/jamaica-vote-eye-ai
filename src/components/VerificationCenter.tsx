@@ -210,6 +210,12 @@ export const VerificationCenter: React.FC = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      
+      console.log('Cancelling verification:', {
+        verificationId,
+        currentUserId: user?.id,
+        currentUserEmail: user?.email
+      });
 
       const { data, error } = await supabase.functions.invoke('didit-verification', {
         body: {
@@ -218,6 +224,8 @@ export const VerificationCenter: React.FC = () => {
           user_id: user?.id,
         },
       });
+      
+      console.log('Cancel response:', { data, error });
 
       if (error || !data?.success) throw error || new Error(data?.error);
 

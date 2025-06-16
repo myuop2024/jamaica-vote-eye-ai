@@ -61,6 +61,7 @@ serve(async (req) => {
         return await handleCheckVerificationStatus(supabaseClient, session_id);
       
       case 'cancel_verification':
+        console.log('Cancel verification action:', { user_id, verification_id, currentUserId: user.id });
         // Allow admins to cancel any verification or users to cancel their own pending verification
         if (user.id !== user_id) {
           // Check if user has admin role
@@ -69,11 +70,14 @@ serve(async (req) => {
             .select('role')
             .eq('id', user.id)
             .single();
+          
+          console.log('Admin check:', { profile, userRole: profile?.role });
 
           if (profile?.role !== 'admin') {
             throw new Error('Only admins can cancel other users\' verifications.');
           }
         }
+        console.log('Calling handleCancelVerification with:', verification_id || session_id || '');
         return await handleCancelVerification(supabaseClient, verification_id || session_id || '');
       
       default:
