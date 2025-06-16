@@ -1,9 +1,16 @@
 import { corsHeaders } from '../_shared/config.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export async function handleCancelVerification(supabaseClient: any, verificationId: string) {
+export async function handleCancelVerification(_supabaseClient: any, verificationId: string) {
   try {
+    // Use service-role client to bypass RLS for administrative cancellation
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Fetch verification to ensure it exists and is pending
-    const { data: verification, error: fetchError } = await supabaseClient
+    const { data: verification, error: fetchError } = await supabaseAdmin
       .from('didit_verifications')
       .select('status')
       .eq('id', verificationId)
@@ -20,7 +27,7 @@ export async function handleCancelVerification(supabaseClient: any, verification
       );
     }
 
-    const { error: updateError } = await supabaseClient
+    const { error: updateError } = await supabaseAdmin
       .from('didit_verifications')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('id', verificationId);
