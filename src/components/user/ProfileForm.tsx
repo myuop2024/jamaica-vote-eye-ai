@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { getAllProfileFieldTemplates } from '@/services/profileFieldTemplateService';
 import { ProfileFieldTemplate, ProfileData } from '@/types/profile';
@@ -151,6 +152,18 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     return shouldRender;
   };
 
+  // Helper function to ensure SelectItem value is valid
+  const isValidSelectItemValue = (value: any): value is string => {
+    const isValid = value !== null && 
+      value !== undefined && 
+      typeof value === 'string' && 
+      value.trim() !== '' &&
+      value.length > 0;
+    
+    console.log('Checking SelectItem value validity:', { value, type: typeof value, isValid });
+    return isValid;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -207,21 +220,17 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                     >
                       <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
                       <SelectContent>
-                        {getValidOptions(field.options).map((opt, index) => {
-                          console.log(`Rendering SelectItem ${index} for ${field.field_key}:`, JSON.stringify(opt), 'type:', typeof opt, 'length:', opt.length);
-                          
-                          // Extra safety check before rendering
-                          if (!opt || typeof opt !== 'string' || opt.trim() === '') {
-                            console.error('Attempted to render SelectItem with invalid value:', opt);
-                            return null;
-                          }
-                          
-                          return (
-                            <SelectItem key={`${field.field_key}-${index}-${opt}`} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          );
-                        })}
+                        {getValidOptions(field.options)
+                          .filter(opt => isValidSelectItemValue(opt))
+                          .map((opt, index) => {
+                            console.log(`Rendering SelectItem ${index} for ${field.field_key}:`, JSON.stringify(opt), 'type:', typeof opt, 'length:', opt.length);
+                            
+                            return (
+                              <SelectItem key={`${field.field_key}-${index}-${opt}`} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            );
+                          })}
                       </SelectContent>
                     </Select>
                   )}
