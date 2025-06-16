@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { getAllProfileFieldTemplates } from '@/services/profileFieldTemplateService';
 import { ProfileFieldTemplate, ProfileData } from '@/types/profile';
@@ -25,12 +26,6 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     getAllProfileFieldTemplates()
       .then(templateFields => {
         console.log('Profile field templates received:', templateFields);
-        // Log each field's options to debug
-        templateFields.forEach(field => {
-          if (field.type === 'select') {
-            console.log(`Field ${field.field_key} options:`, field.options);
-          }
-        });
         setFields(templateFields);
       })
       .catch(e => setError(e.message));
@@ -118,83 +113,37 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
-  // Much stricter validation for select options
-  const getValidSelectOptions = (options: string[] | undefined): string[] => {
+  // Ultimate safety function to ensure no empty strings reach SelectItem
+  const getSafeSelectOptions = (options: string[] | undefined): string[] => {
     if (!Array.isArray(options)) {
       console.log('Options is not an array:', options);
       return [];
     }
     
-    const validOptions = options.filter(opt => {
-      // Very strict validation
-      const isValidString = typeof opt === 'string';
-      const hasContent = isValidString && opt.length > 0;
-      const hasNonWhitespaceContent = hasContent && opt.trim().length > 0;
-      const isNotEmptyAfterTrim = hasNonWhitespaceContent && opt.trim() !== '';
+    const safeOptions = options.filter(option => {
+      const isString = typeof option === 'string';
+      const hasLength = isString && option.length > 0;
+      const isNotEmpty = hasLength && option.trim().length > 0;
+      const isNotJustWhitespace = isNotEmpty && option.trim() !== '';
       
-      const isValid = isValidString && hasContent && hasNonWhitespaceContent && isNotEmptyAfterTrim;
+      const isSafe = isString && hasLength && isNotEmpty && isNotJustWhitespace;
       
-      if (!isValid) {
-        console.log('Invalid option filtered out:', { 
-          opt, 
-          type: typeof opt, 
-          isValidString, 
-          hasContent, 
-          hasNonWhitespaceContent, 
-          isNotEmptyAfterTrim 
+      if (!isSafe) {
+        console.warn('Filtering out unsafe option:', { 
+          option, 
+          type: typeof option, 
+          isString, 
+          hasLength, 
+          isNotEmpty, 
+          isNotJustWhitespace 
         });
       }
       
-      return isValid;
+      return isSafe;
     });
     
-    console.log('Valid options after strict filtering:', validOptions);
-    return validOptions;
-  };
-
-  // Helper function to safely filter options and ensure they're valid for Select component
-  const getValidOptions = (options: string[] | undefined) => {
-    if (!options || !Array.isArray(options)) {
-      console.log('Options is not a valid array:', options);
-      return [];
-    }
-    
-    const validOptions = options.filter(opt => {
-      const isValid = opt !== null && 
-        opt !== undefined && 
-        typeof opt === 'string' && 
-        opt.trim() !== '' &&
-        opt.length > 0;
-      
-      if (!isValid) {
-        console.log('Invalid option filtered out:', opt, typeof opt);
-      }
-      
-      return isValid;
-    });
-    
-    console.log('Valid options after filtering:', validOptions);
-    return validOptions;
-  };
-
-  // Helper function to determine if a field should render as a select
-  const shouldRenderAsSelect = (field: ProfileFieldTemplate) => {
-    const validOptions = getValidSelectOptions(field.options);
-    const shouldRender = field.type === 'select' && validOptions.length > 0;
-    console.log(`Should render select for ${field.field_key}:`, shouldRender, 'Valid options count:', validOptions.length);
-    return shouldRender;
-  };
-
-  // Helper function to ensure SelectItem value is valid
-  const isValidSelectItemValue = (value: any): value is string => {
-    const isValid = value !== null && 
-      value !== undefined && 
-      typeof value === 'string' && 
-      value.trim() !== '' &&
-      value.length > 0;
-    
-    console.log('Checking SelectItem value validity:', { value, type: typeof value, isValid });
-    return isValid;
+    console.log('Safe options after filtering:', safeOptions);
+    return safeOptions;
   };
 
   return (
@@ -218,18 +167,19 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
             .filter(f => f.visible_to_user && (!f.roles || f.roles.includes(user?.role)))
             .sort((a, b) => a.order - b.order)
             .map(field => {
-              console.log(`Rendering field: ${field.field_key}, type: ${field.type}`);
+              console.log(`Processing field: ${field.field_key}, type: ${field.type}`);
               
-              // For select fields, get valid options and only render if we have any
+              // Handle select fields with ultimate safety
               if (field.type === 'select') {
-                const validOptions = getValidSelectOptions(field.options);
+                const safeOptions = getSafeSelectOptions(field.options);
                 
-                if (validOptions.length === 0) {
-                  console.log(`Skipping select field ${field.field_key} - no valid options`);
+                // Don't render select if no safe options
+                if (safeOptions.length === 0) {
+                  console.log(`Skipping select field ${field.field_key} - no safe options available`);
                   return null;
                 }
                 
-                console.log(`Rendering select field ${field.field_key} with ${validOptions.length} valid options:`, validOptions);
+                console.log(`Rendering select field ${field.field_key} with ${safeOptions.length} safe options`);
                 
                 return (
                   <div key={field.field_key} className="space-y-2">
@@ -241,18 +191,18 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                     >
                       <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
                       <SelectContent>
-                        {validOptions.map((opt, index) => {
-                          console.log(`About to render SelectItem ${index} for ${field.field_key}:`, { 
-                            value: opt, 
-                            type: typeof opt, 
-                            length: opt.length,
-                            trimmed: opt.trim(),
-                            trimmedLength: opt.trim().length
-                          });
+                        {safeOptions.map((option, index) => {
+                          // Final safety check right before rendering SelectItem
+                          if (typeof option !== 'string' || option.length === 0 || option.trim() === '') {
+                            console.error('CRITICAL: Attempting to render SelectItem with invalid value:', option);
+                            return null;
+                          }
+                          
+                          console.log(`Rendering SelectItem ${index}: "${option}"`);
                           
                           return (
-                            <SelectItem key={`${field.field_key}-${index}-${opt}`} value={opt}>
-                              {opt}
+                            <SelectItem key={`${field.field_key}-${index}-${option}`} value={option}>
+                              {option}
                             </SelectItem>
                           );
                         })}
@@ -262,6 +212,7 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                 );
               }
               
+              // Handle all other field types
               return (
                 <div key={field.field_key} className="space-y-2">
                   <Label>{field.label}{field.required && ' *'}</Label>
@@ -290,7 +241,7 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                   )}
                   {field.type === 'checkbox' && field.options && (
                     <div className="flex flex-col gap-2">
-                      {getValidSelectOptions(field.options).map(opt => (
+                      {getSafeSelectOptions(field.options).map(opt => (
                         <label key={opt} className="flex items-center gap-2">
                           <input
                             type="checkbox"
