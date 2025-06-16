@@ -164,29 +164,33 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {field.options.map(opt => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                      ))}
+                      {field.options
+                        .filter(opt => opt && opt.trim() !== '') // Filter out empty strings
+                        .map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 )}
                 {field.type === 'checkbox' && field.options && (
                   <div className="flex flex-col gap-2">
-                    {field.options.map(opt => (
-                      <label key={opt} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={Array.isArray(profileData[field.field_key]) && profileData[field.field_key].includes(opt)}
-                          onChange={e => {
-                            const arr = Array.isArray(profileData[field.field_key]) ? [...profileData[field.field_key]] : [];
-                            if (e.target.checked) arr.push(opt);
-                            else arr.splice(arr.indexOf(opt), 1);
-                            handleChange(field.field_key, arr);
-                          }}
-                        />
-                        {opt}
-                      </label>
-                    ))}
+                    {field.options
+                      .filter(opt => opt && opt.trim() !== '') // Filter out empty strings
+                      .map(opt => (
+                        <label key={opt} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={Array.isArray(profileData[field.field_key]) && profileData[field.field_key].includes(opt)}
+                            onChange={e => {
+                              const arr = Array.isArray(profileData[field.field_key]) ? [...profileData[field.field_key]] : [];
+                              if (e.target.checked) arr.push(opt);
+                              else arr.splice(arr.indexOf(opt), 1);
+                              handleChange(field.field_key, arr);
+                            }}
+                          />
+                          {opt}
+                        </label>
+                      ))}
                   </div>
                 )}
                 {field.type === 'file' && (
