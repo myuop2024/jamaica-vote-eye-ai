@@ -26,15 +26,24 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     getAllProfileFieldTemplates()
       .then(setFields)
       .catch(e => setError(e.message));
-    // Fetch user profile_data
+    
+    // Fetch user profile data from the existing columns
     supabase
       .from('profiles')
-      .select('profile_data')
+      .select('name, phone_number, address, parish, assigned_station')
       .eq('id', userId)
       .single()
       .then(({ data, error }) => {
         if (error) return;
-        setProfileData(data?.profile_data || {});
+        // Map the existing profile columns to our profile data structure
+        const mappedData: ProfileData = {
+          full_name: data?.name || '',
+          phone_number: data?.phone_number || '',
+          address: data?.address || '',
+          parish: data?.parish || '',
+          assigned_station: data?.assigned_station || ''
+        };
+        setProfileData(mappedData);
       });
   }, [userId]);
 
@@ -70,9 +79,18 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     if (!validate()) return;
     setLoading(true);
     try {
+      // Map our profile data back to the existing profile columns
+      const updateData = {
+        name: profileData.full_name || '',
+        phone_number: profileData.phone_number || '',
+        address: profileData.address || '',
+        parish: profileData.parish || '',
+        assigned_station: profileData.assigned_station || ''
+      };
+      
       const { error } = await supabase
         .from('profiles')
-        .update({ profile_data: profileData })
+        .update(updateData)
         .eq('id', userId);
       if (error) throw error;
       setSuccess('Profile updated successfully.');
