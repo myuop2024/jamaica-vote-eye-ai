@@ -155,11 +155,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "Login successful"
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid credentials",
+        description: (error as Error).message || "Invalid credentials",
         variant: "destructive"
       });
       setIsLoading(false); // Reset loading state on error
@@ -176,7 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Success",
         description: "Logged out successfully"
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Logout error:', error);
       toast({
         title: "Error",

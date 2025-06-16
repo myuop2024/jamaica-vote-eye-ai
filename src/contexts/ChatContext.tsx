@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -14,6 +15,8 @@ export interface ChatMessage {
   room: string;
   senderId: string;
   senderName: string;
+  receiverId?: string;
+  receiverName?: string;
   content: string;
   type: 'text' | 'file';
   fileUrl?: string;
@@ -26,7 +29,13 @@ export interface ChatMessage {
 
 export interface ChatContextType {
   messages: ChatMessage[];
-  sendMessage: (room: string, content: string, type?: 'text' | 'file', fileMeta?: { url: string; name: string }) => void;
+  sendMessage: (
+    room: string,
+    content: string,
+    type?: 'text' | 'file',
+    fileMeta?: { url: string; name: string },
+    receiver?: { id: string; name: string }
+  ) => void;
   editMessage: (msgId: string, newContent: string) => void;
   deleteMessage: (msgId: string) => void;
   joinRoom: (room: string) => void;
@@ -50,7 +59,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentRoom, setCurrentRoom] = useState('');
   const [onlineUsers, setOnlineUsers] = useState<Record<string, string>>({});
   const wsRef = useRef<WebSocket | null>(null);
-  const retryQueue = useRef<ChatMessage[]>([]);
+  const retryQueue = useRef<{ type: 'message'; message: ChatMessage }[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
 
   // Connect to chat WebSocket with error handling
@@ -142,7 +151,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user, currentRoom]);
 
-  const sendMessage = async (room: string, content: string, type: 'text' | 'file' = 'text', fileMeta?: { url: string; name: string }) => {
+  const sendMessage = async (
+    room: string,
+    content: string,
+    type: 'text' | 'file' = 'text',
+    fileMeta?: { url: string; name: string },
+    receiver?: { id: string; name: string }
+  ) => {
     if (!user) {
       console.error('Cannot send message: user not authenticated');
       return;
@@ -153,6 +168,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       room,
       senderId: user.id,
       senderName: user.name,
+      receiverId: receiver?.id,
+      receiverName: receiver?.name,
       content,
       type,
       fileUrl: fileMeta?.url,
@@ -166,7 +183,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       // Queue for retry
-      retryQueue.current.push({ ...msg, type: 'message', message: msg } as any);
+      retryQueue.current.push({ type: 'message', message: msg });
       // Update status to failed after a delay
       setTimeout(() => {
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'failed' } : m));
@@ -182,6 +199,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Audit/notify
       if (user) {
         await notifyChatEvent(user.id, 'chat_message_sent', `Message sent in ${room}`, { msg });
+        if (receiver) {
+          await notifyChatEvent(user.id, 'chat_direct_message', `Direct message to ${receiver.name}`, { msg });
+        }
         if (type === 'file' && fileMeta) {
           await notifyChatEvent(user.id, 'chat_file_uploaded', `File uploaded in ${room}: ${fileMeta.name}`, { file: fileMeta });
         }
