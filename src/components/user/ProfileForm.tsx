@@ -113,37 +113,18 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
     }
   };
 
-  // Ultimate safety function to ensure no empty strings reach SelectItem
+  // Final validation function for select item values
+  const isValidSelectValue = (value: any): value is string => {
+    return typeof value === 'string' && value.trim().length > 0;
+  };
+
+  // Get safe options with comprehensive validation
   const getSafeSelectOptions = (options: string[] | undefined): string[] => {
     if (!Array.isArray(options)) {
-      console.log('Options is not an array:', options);
       return [];
     }
     
-    const safeOptions = options.filter(option => {
-      const isString = typeof option === 'string';
-      const hasLength = isString && option.length > 0;
-      const isNotEmpty = hasLength && option.trim().length > 0;
-      const isNotJustWhitespace = isNotEmpty && option.trim() !== '';
-      
-      const isSafe = isString && hasLength && isNotEmpty && isNotJustWhitespace;
-      
-      if (!isSafe) {
-        console.warn('Filtering out unsafe option:', { 
-          option, 
-          type: typeof option, 
-          isString, 
-          hasLength, 
-          isNotEmpty, 
-          isNotJustWhitespace 
-        });
-      }
-      
-      return isSafe;
-    });
-    
-    console.log('Safe options after filtering:', safeOptions);
-    return safeOptions;
+    return options.filter(isValidSelectValue);
   };
 
   return (
@@ -167,19 +148,14 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
             .filter(f => f.visible_to_user && (!f.roles || f.roles.includes(user?.role)))
             .sort((a, b) => a.order - b.order)
             .map(field => {
-              console.log(`Processing field: ${field.field_key}, type: ${field.type}`);
-              
               // Handle select fields with ultimate safety
               if (field.type === 'select') {
                 const safeOptions = getSafeSelectOptions(field.options);
                 
                 // Don't render select if no safe options
                 if (safeOptions.length === 0) {
-                  console.log(`Skipping select field ${field.field_key} - no safe options available`);
                   return null;
                 }
-                
-                console.log(`Rendering select field ${field.field_key} with ${safeOptions.length} safe options`);
                 
                 return (
                   <div key={field.field_key} className="space-y-2">
@@ -191,21 +167,13 @@ export const ProfileForm: React.FC<{ userId: string }> = ({ userId }) => {
                     >
                       <SelectTrigger><SelectValue placeholder={`Select ${field.label}`} /></SelectTrigger>
                       <SelectContent>
-                        {safeOptions.map((option, index) => {
-                          // Final safety check right before rendering SelectItem
-                          if (typeof option !== 'string' || option.length === 0 || option.trim() === '') {
-                            console.error('CRITICAL: Attempting to render SelectItem with invalid value:', option);
-                            return null;
-                          }
-                          
-                          console.log(`Rendering SelectItem ${index}: "${option}"`);
-                          
-                          return (
-                            <SelectItem key={`${field.field_key}-${index}-${option}`} value={option}>
+                        {safeOptions
+                          .filter(isValidSelectValue) // One more filter before rendering
+                          .map((option, index) => (
+                            <SelectItem key={`${field.field_key}-${index}`} value={option}>
                               {option}
                             </SelectItem>
-                          );
-                        })}
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
