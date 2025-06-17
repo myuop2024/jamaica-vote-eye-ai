@@ -220,13 +220,13 @@ export const ProfileFieldTemplateManager: React.FC = () => {
                 {ROLES.map(role => (
                   <label key={role.value} className="flex items-center gap-2">
                     <Checkbox
-                      checked={form.roles.includes(role.value)}
+                      checked={form.roles?.includes(role.value) ?? false}
                       onCheckedChange={checked => {
                         setForm((prev: any) => ({
                           ...prev,
                           roles: checked
-                            ? [...prev.roles, role.value]
-                            : prev.roles.filter((r: string) => r !== role.value),
+                            ? [...(prev.roles || []), role.value]
+                            : (prev.roles || []).filter((r: string) => r !== role.value),
                         }));
                       }}
                     />
