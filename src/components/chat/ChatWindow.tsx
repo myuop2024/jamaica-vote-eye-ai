@@ -19,14 +19,24 @@ function encryptMessage(message: string) {
   }
 }
 
-function decryptMessage(ciphertext: string) {
+function decryptMessage(ciphertext: string, messageId?: string) {
+  if (!ciphertext) {
+    return ""; // Return empty if ciphertext is empty
+  }
   try {
     const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-    return decrypted || ciphertext;
+
+    // If decryption results in an empty string for a non-empty ciphertext,
+    // it's often an indication of a key mismatch or corrupted data.
+    if (decrypted === "" && ciphertext !== "") {
+      console.warn(`ChatWindow: Decryption resulted in an empty string for a non-empty ciphertext. messageId: ${messageId || 'N/A'}. Displaying error message.`);
+      return "[Message content error]";
+    }
+    return decrypted;
   } catch (error) {
-    console.error('Decryption failed:', error);
-    return ciphertext; // Return as-is if decryption fails
+    console.error(`ChatWindow: Decryption failed. messageId: ${messageId || 'N/A'}`, error);
+    return "[Message undecryptable]";
   }
 }
 
@@ -114,7 +124,7 @@ export const ChatWindow: React.FC = () => {
 
   const handleEdit = (msgId: string, content: string) => {
     setEditingMsgId(msgId);
-    setEditInput(decryptMessage(content));
+    setEditInput(decryptMessage(content, msgId)); // msgId is available in handleEdit's scope
   };
 
   const handleEditSave = () => {
@@ -187,7 +197,7 @@ export const ChatWindow: React.FC = () => {
                     {msg.type === 'file' ? (
                       <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">{msg.fileName}</a>
                     ) : (
-                      <span className="break-words">{decryptMessage(msg.content)}</span>
+                      <span className="break-words">{decryptMessage(msg.content, msg.id)}</span>
                     )}
                     {msg.edited && <span className="text-xs text-gray-400 ml-1">(edited)</span>}
                   </div>
