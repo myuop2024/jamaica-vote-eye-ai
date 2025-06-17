@@ -3,6 +3,7 @@ import { useChat, ChatMessage } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/types/auth';
 import { UserSearch } from './UserSearch';
+import { toast } from '@/hooks/use-toast';
 
 // Use a simpler emoji picker for now - can be replaced with emoji-mart later
 const EMOJIS = ['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉'];
@@ -30,6 +31,7 @@ export const ChatWindow: React.FC = () => {
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editInput, setEditInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [room, setRoom] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,23 +61,39 @@ export const ChatWindow: React.FC = () => {
     
     if (file) {
       if (file.size > 5 * 1024 * 1024 * 1024) { // 5GB limit
-        alert('File size exceeds 5GB limit.');
+        toast({
+          title: 'File too large',
+          description: 'File size exceeds 5GB limit.',
+          variant: 'destructive'
+        });
         return;
       }
+      
+      setIsUploading(true);
       try {
         const { url, name } = await uploadFile(file);
         sendMessage(
-          input, // Send text along with file
+          input || `Shared file: ${name}`, // Provide fallback text
           'file',
           { url, name },
           selectedUser ? { id: selectedUser.id, name: selectedUser.name } : undefined
         );
         setFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
+        toast({
+          title: 'File uploaded',
+          description: 'File uploaded successfully.',
+        });
       } catch (error) {
         console.error('File upload failed:', error);
-        alert('File upload failed. Please try again.');
+        toast({
+          title: 'Upload failed',
+          description: 'File upload failed. Please try again.',
+          variant: 'destructive'
+        });
         return;
+      } finally {
+        setIsUploading(false);
       }
     } else {
       sendMessage(
@@ -225,6 +243,7 @@ export const ChatWindow: React.FC = () => {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSend()}
           placeholder="Type a message..."
+          disabled={isUploading}
         />
         <input
           type="file"
@@ -232,9 +251,26 @@ export const ChatWindow: React.FC = () => {
           className="hidden"
           onChange={e => setFile(e.target.files?.[0] || null)}
         />
-        <button onClick={() => fileInputRef.current?.click()} className="mr-2 p-1 hover:bg-gray-200 rounded">📎</button>
-        {file && <span className="mr-2 text-xs bg-blue-100 px-2 py-1 rounded">{file.name}</span>}
-        <button onClick={handleSend} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Send</button>
+        <button 
+          onClick={() => fileInputRef.current?.click()} 
+          className="mr-2 p-1 hover:bg-gray-200 rounded"
+          disabled={isUploading}
+          title="Attach file"
+        >
+          📎
+        </button>
+        {file && (
+          <span className="mr-2 text-xs bg-blue-100 px-2 py-1 rounded max-w-20 truncate" title={file.name}>
+            {file.name}
+          </span>
+        )}
+        <button 
+          onClick={handleSend} 
+          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+          disabled={isUploading || (!input.trim() && !file)}
+        >
+          {isUploading ? 'Uploading...' : 'Send'}
+        </button>
       </div>
     </div>
   );

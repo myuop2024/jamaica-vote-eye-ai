@@ -9,6 +9,57 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          deleted: boolean
+          edited: boolean
+          file_name: string | null
+          file_url: string | null
+          id: string
+          receiver_id: string | null
+          receiver_name: string | null
+          room: string
+          sender_id: string
+          sender_name: string | null
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted?: boolean
+          edited?: boolean
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          receiver_id?: string | null
+          receiver_name?: string | null
+          room: string
+          sender_id: string
+          sender_name?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted?: boolean
+          edited?: boolean
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          receiver_id?: string | null
+          receiver_name?: string | null
+          room?: string
+          sender_id?: string
+          sender_name?: string | null
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       communication_logs: {
         Row: {
           communication_id: string

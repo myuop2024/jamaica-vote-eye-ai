@@ -7,7 +7,8 @@ import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 import CryptoJS from 'crypto-js';
 
-const ENCRYPTION_KEY = import.meta.env.VITE_CHAT_ENCRYPTION_KEY || 'fallback_encryption_key_for_development';
+// Use a more secure fallback encryption key for development
+const ENCRYPTION_KEY = import.meta.env.VITE_CHAT_ENCRYPTION_KEY || 'secure_chat_encryption_key_for_development_only';
 
 function encryptMessage(message: string): string {
   if (!message) return '';
@@ -306,18 +307,29 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const uploadFile = async (file: File) => {
     if (!currentRoom) throw new Error('Cannot upload file without being in a room.');
-    const filePath = `${currentRoom}/${user?.id}/${Date.now()}_${file.name}`;
+    if (!user) throw new Error('User must be authenticated to upload files.');
+    
+    const filePath = `${currentRoom}/${user.id}/${Date.now()}_${file.name}`;
     console.log(`Chat: Uploading file "${file.name}" to path "${filePath}".`);
     
-    const { data, error } = await supabase.storage.from('chat-files').upload(filePath, file);
-    if (error) {
-      console.error('Chat: File upload failed:', error);
-      throw new Error(`File upload failed: ${error.message}`);
-    }
+    try {
+      const { data, error } = await supabase.storage.from('chat-files').upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+      
+      if (error) {
+        console.error('Chat: File upload failed:', error);
+        throw new Error(`File upload failed: ${error.message}`);
+      }
 
-    const { data: { publicUrl } } = supabase.storage.from('chat-files').getPublicUrl(data.path);
-    console.log(`Chat: File uploaded successfully. Public URL: ${publicUrl}`);
-    return { url: publicUrl, name: file.name };
+      const { data: { publicUrl } } = supabase.storage.from('chat-files').getPublicUrl(data.path);
+      console.log(`Chat: File uploaded successfully. Public URL: ${publicUrl}`);
+      return { url: publicUrl, name: file.name };
+    } catch (error) {
+      console.error('Chat: File upload error:', error);
+      throw error;
+    }
   };
 
   return (
