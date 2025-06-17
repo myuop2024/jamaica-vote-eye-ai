@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import chatProxy from './chatProxy';
 import http from 'http';
 
 const app = express();
@@ -11,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/chat', chatProxy);
+// app.use('/api/chat', chatProxy); // This is no longer needed
 
 // Health check
 app.get('/health', (req, res) => {
