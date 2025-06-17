@@ -5,8 +5,35 @@ import { supabase } from '@/integrations/supabase/client';
 import { notifyChatEvent } from '@/services/notificationService';
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
+import CryptoJS from 'crypto-js';
 
-const generateUUID = () => crypto.randomUUID();
+const ENCRYPTION_KEY = import.meta.env.VITE_CHAT_ENCRYPTION_KEY || 'fallback_encryption_key_for_development';
+
+function encryptMessage(message: string): string {
+  if (!message) return '';
+  try {
+    return CryptoJS.AES.encrypt(message, ENCRYPTION_KEY).toString();
+  } catch (error) {
+    console.error('Encryption failed:', error);
+    return message; // Fallback to unencrypted
+  }
+}
+
+function decryptMessage(ciphertext: string, messageId?: string): string {
+  if (!ciphertext) return '';
+  try {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    if (decrypted === '' && ciphertext !== '') {
+      console.warn(`Decryption resulted in empty string for messageId: ${messageId || 'N/A'}`);
+      return '[Message Content Error]';
+    }
+    return decrypted;
+  } catch (error) {
+    console.error(`Decryption failed for messageId: ${messageId || 'N/A'}`, error);
+    return '[Message Undecryptable]';
+  }
+}
 
 export interface ChatMessage {
   id: string;
@@ -60,10 +87,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleIncomingMessage = useCallback((payload: any) => {
     const message = payload.message as ChatMessage;
-    console.log(`Chat: Received message in room ${message.room}`, message);
+    const decryptedContent = decryptMessage(message.content, message.id);
+    const decryptedMessage = { ...message, content: decryptedContent };
+
+    console.log(`Chat: Received message in room ${decryptedMessage.room}`, decryptedMessage);
     setMessages(prev => {
-      if (prev.find(m => m.id === message.id)) return prev; // Deduplicate
-      return [...prev, message];
+      if (prev.find(m => m.id === decryptedMessage.id)) return prev; // Deduplicate
+      return [...prev, decryptedMessage];
     });
   }, []);
 
@@ -138,6 +168,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    const encryptedContent = encryptMessage(content);
+
     const msg: ChatMessage = {
       id: generateUUID(),
       room: currentRoom,
@@ -145,7 +177,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       senderName: user.name || user.email || 'Anonymous',
       receiverId: receiver?.id,
       receiverName: receiver?.name,
-      content,
+      content: encryptedContent,
       type,
       fileUrl: fileMeta?.url,
       fileName: fileMeta?.name,
@@ -153,13 +185,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       status: 'sending',
     };
 
-    setMessages(prev => [...prev, msg]); // Optimistic UI update
+    setMessages(prev => [...prev, { ...msg, content: content }]);
 
     try {
       const result = await channelRef.current.send({
         type: 'broadcast',
         event: 'message',
-        payload: { message: { ...msg, status: 'sent' } },
+        payload: { message: msg },
       });
 
       if (result === 'ok') {

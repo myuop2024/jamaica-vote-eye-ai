@@ -3,42 +3,9 @@ import { useChat, ChatMessage } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/types/auth';
 import { UserSearch } from './UserSearch';
-import CryptoJS from 'crypto-js';
 
 // Use a simpler emoji picker for now - can be replaced with emoji-mart later
 const EMOJIS = ['😀', '😂', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉'];
-
-const ENCRYPTION_KEY = import.meta.env.VITE_CHAT_ENCRYPTION_KEY || 'fallback_encryption_key_for_development';
-
-function encryptMessage(message: string) {
-  try {
-    return CryptoJS.AES.encrypt(message, ENCRYPTION_KEY).toString();
-  } catch (error) {
-    console.error('Encryption failed:', error);
-    return message; // Return unencrypted as fallback
-  }
-}
-
-function decryptMessage(ciphertext: string, messageId?: string) {
-  if (!ciphertext) {
-    return ""; // Return empty if ciphertext is empty
-  }
-  try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-
-    // If decryption results in an empty string for a non-empty ciphertext,
-    // it's often an indication of a key mismatch or corrupted data.
-    if (decrypted === "" && ciphertext !== "") {
-      console.warn(`ChatWindow: Decryption resulted in an empty string for a non-empty ciphertext. messageId: ${messageId || 'N/A'}. Displaying error message.`);
-      return "[Message content error]";
-    }
-    return decrypted;
-  } catch (error) {
-    console.error(`ChatWindow: Decryption failed. messageId: ${messageId || 'N/A'}`, error);
-    return "[Message undecryptable]";
-  }
-}
 
 const dmRoomId = (id1: string, id2: string) => {
   return id1 < id2 ? `dm-${id1}-${id2}` : `dm-${id2}-${id1}`;
@@ -49,13 +16,12 @@ export const ChatWindow: React.FC = () => {
   const {
     messages,
     sendMessage,
-    editMessage,
-    deleteMessage,
     joinRoom,
     leaveRoom,
     currentRoom,
     onlineUsers,
     uploadFile,
+    connectionStatus,
   } = useChat();
   
   const [input, setInput] = useState('');
@@ -70,9 +36,11 @@ export const ChatWindow: React.FC = () => {
 
   useEffect(() => {
     if (room) joinRoom(room);
-    return () => leaveRoom(room);
+    return () => {
+      if(room) leaveRoom(room);
+    }
     // eslint-disable-next-line
-  }, [room]);
+  }, [room, joinRoom, leaveRoom]);
 
   useEffect(() => {
     if (selectedUser && user) {
@@ -87,17 +55,16 @@ export const ChatWindow: React.FC = () => {
 
   const handleSend = async () => {
     if (!input.trim() && !file) return;
-    const encrypted = encryptMessage(input);
+    
     if (file) {
-      if (file.size > 5 * 1024 * 1024 * 1024) {
+      if (file.size > 5 * 1024 * 1024 * 1024) { // 5GB limit
         alert('File size exceeds 5GB limit.');
         return;
       }
       try {
-        const { url, name } = await uploadFile(file, room);
+        const { url, name } = await uploadFile(file);
         sendMessage(
-          room,
-          encrypted,
+          input, // Send text along with file
           'file',
           { url, name },
           selectedUser ? { id: selectedUser.id, name: selectedUser.name } : undefined
@@ -111,8 +78,7 @@ export const ChatWindow: React.FC = () => {
       }
     } else {
       sendMessage(
-        room,
-        encrypted,
+        input,
         'text',
         undefined,
         selectedUser ? { id: selectedUser.id, name: selectedUser.name } : undefined
@@ -124,26 +90,31 @@ export const ChatWindow: React.FC = () => {
 
   const handleEdit = (msgId: string, content: string) => {
     setEditingMsgId(msgId);
-    setEditInput(decryptMessage(content, msgId)); // msgId is available in handleEdit's scope
+    setEditInput(content); // Content is now plain text
   };
 
   const handleEditSave = () => {
-    if (editingMsgId) {
-      editMessage(editingMsgId, encryptMessage(editInput));
-      setEditingMsgId(null);
-      setEditInput('');
-    }
+    // Note: editMessage is not in the context anymore.
+    // This would need to be re-implemented in ChatContext.
+    // For now, this button does nothing.
+    console.warn("Edit functionality is not implemented in the new ChatContext yet.");
+    setEditingMsgId(null);
+    setEditInput('');
+  };
+
+  const handleDelete = (msgId: string) => {
+    // Note: deleteMessage is not in the context anymore.
+    // This would need to be re-implemented in ChatContext.
+    console.warn("Delete functionality is not implemented in the new ChatContext yet.");
   };
 
   const canEditOrDelete = (msg: ChatMessage) => {
     if (!user) return false;
-    if (msg.senderId === user.id) return true;
-    if (user.role === 'admin') return true;
-    if ((user.role === 'parish_coordinator' || user.role === 'roving_observer') && msg.room.includes(user.assignedStation || '')) return true;
-    return false;
+    // Simplified: only sender can "edit" (which is currently disabled)
+    return msg.senderId === user.id;
   };
 
-  const isOnline = Object.keys(onlineUsers).length > 0;
+  const isOnline = connectionStatus === 'SUBSCRIBED';
 
   return (
     <div className="chat-window border rounded shadow-lg flex flex-col h-[80vh] sm:h-[600px] w-full max-w-2xl mx-auto bg-white">
@@ -151,8 +122,8 @@ export const ChatWindow: React.FC = () => {
         <select value={room} onChange={e => { setSelectedUser(null); setRoom(e.target.value); }} className="border rounded px-2 py-1">
           <option value="">Select Room</option>
           <option value="admin">Admin</option>
-          <option value={`parish-${user?.assignedStation}`}>Parish Room</option>
-          <option value={`roving-${user?.assignedStation}`}>Roving Room</option>
+          {user?.assignedStation && <option value={`parish-${user.assignedStation}`}>Parish Room</option>}
+          {user?.assignedStation && <option value={`roving-${user.assignedStation}`}>Roving Room</option>}
         </select>
         {selectedUser ? (
           <div className="flex items-center text-sm">
@@ -166,20 +137,20 @@ export const ChatWindow: React.FC = () => {
         )}
         <div className="ml-auto flex items-center space-x-2">
           <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} title={isOnline ? 'Online' : 'Offline'}></div>
-          <span className="text-xs text-gray-500">
-            {isOnline ? `Online: ${Object.values(onlineUsers).join(', ')}` : 'Offline Mode'}
+           <span className="text-xs text-gray-500">
+            {isOnline ? `Online: ${Object.keys(onlineUsers).length}` : 'Offline'}
           </span>
         </div>
       </div>
       
-      {!isOnline && (
+      {!isOnline && connectionStatus !== 'CLOSED' && (
         <div className="bg-yellow-100 border-b p-2 text-sm text-yellow-800">
-          ⚠️ Chat is in offline mode. Messages are saved locally and real-time features are unavailable.
+          ⚠️ Chat is reconnecting or has a connection issue... ({connectionStatus})
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto p-4 bg-white">
-        {messages.filter(m => m.room === room).map((msg, i) => (
+        {messages.filter(m => m.room === currentRoom).map((msg) => (
           <div key={msg.id} className={`mb-2 ${msg.senderId === user?.id ? 'text-right' : 'text-left'}`}> 
             <div className="inline-block bg-gray-200 rounded px-2 py-1 max-w-xs">
               <b className="text-sm">{msg.senderName}</b>{' '}
@@ -197,8 +168,9 @@ export const ChatWindow: React.FC = () => {
                     {msg.type === 'file' ? (
                       <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">{msg.fileName}</a>
                     ) : (
-                      <span className="break-words">{decryptMessage(msg.content, msg.id)}</span>
+                      <span className="break-words">{msg.content}</span>
                     )}
+                    {msg.content && msg.type === 'file' && <div className="text-sm italic text-gray-600">{msg.content}</div>}
                     {msg.edited && <span className="text-xs text-gray-400 ml-1">(edited)</span>}
                   </div>
                 )
@@ -216,7 +188,7 @@ export const ChatWindow: React.FC = () => {
                   {canEditOrDelete(msg) && !msg.deleted && (
                     <div>
                       <button onClick={() => handleEdit(msg.id, msg.content)} className="mr-1 text-blue-600 text-xs">Edit</button>
-                      <button onClick={() => deleteMessage(msg.id)} className="text-red-600 text-xs">Delete</button>
+                      <button onClick={() => handleDelete(msg.id)} className="text-red-600 text-xs">Delete</button>
                     </div>
                   )}
                 </div>
@@ -226,8 +198,7 @@ export const ChatWindow: React.FC = () => {
         ))}
         <div ref={chatEndRef} />
       </div>
-      
-      <div className="p-2 border-t bg-gray-50 flex items-center">
+       <div className="p-2 border-t bg-gray-50 flex items-center">
         <div className="relative">
           <button onClick={() => setShowEmoji(v => !v)} className="mr-2 p-1 hover:bg-gray-200 rounded">😊</button>
           {showEmoji && (
