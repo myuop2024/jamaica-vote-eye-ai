@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat, ChatMessage } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,6 +47,7 @@ export const ChatWindow: React.FC = () => {
     onlineUsers,
     uploadFile,
   } = useChat();
+  
   const [input, setInput] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
@@ -133,6 +133,8 @@ export const ChatWindow: React.FC = () => {
     return false;
   };
 
+  const isOnline = Object.keys(onlineUsers).length > 0;
+
   return (
     <div className="chat-window border rounded shadow-lg flex flex-col h-[80vh] sm:h-[600px] w-full max-w-2xl mx-auto bg-white">
       <div className="flex items-center border-b p-2 bg-gray-100 space-x-2">
@@ -152,8 +154,20 @@ export const ChatWindow: React.FC = () => {
             <UserSearch onSelect={(u) => setSelectedUser(u)} />
           </div>
         )}
-        <span className="ml-auto text-xs text-gray-500">Online: {Object.values(onlineUsers).join(', ')}</span>
+        <div className="ml-auto flex items-center space-x-2">
+          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} title={isOnline ? 'Online' : 'Offline'}></div>
+          <span className="text-xs text-gray-500">
+            {isOnline ? `Online: ${Object.values(onlineUsers).join(', ')}` : 'Offline Mode'}
+          </span>
+        </div>
       </div>
+      
+      {!isOnline && (
+        <div className="bg-yellow-100 border-b p-2 text-sm text-yellow-800">
+          ⚠️ Chat is in offline mode. Messages are saved locally and real-time features are unavailable.
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto p-4 bg-white">
         {messages.filter(m => m.room === room).map((msg, i) => (
           <div key={msg.id} className={`mb-2 ${msg.senderId === user?.id ? 'text-right' : 'text-left'}`}> 
@@ -202,6 +216,7 @@ export const ChatWindow: React.FC = () => {
         ))}
         <div ref={chatEndRef} />
       </div>
+      
       <div className="p-2 border-t bg-gray-50 flex items-center">
         <div className="relative">
           <button onClick={() => setShowEmoji(v => !v)} className="mr-2 p-1 hover:bg-gray-200 rounded">😊</button>

@@ -1,3 +1,4 @@
+
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
@@ -61,85 +62,126 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const wsRef = useRef<WebSocket | null>(null);
   const retryQueue = useRef<{ type: 'message'; message: ChatMessage }[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [useLocalStorage, setUseLocalStorage] = useState(false);
 
-  // Connect to chat WebSocket with error handling
+  // Load messages from localStorage on init
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chat-messages');
+    if (savedMessages) {
+      try {
+        setMessages(JSON.parse(savedMessages));
+      } catch (error) {
+        console.error('Failed to load saved messages:', error);
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage
+  useEffect(() => {
+    localStorage.setItem('chat-messages', JSON.stringify(messages));
+  }, [messages]);
+
+  // Connect to chat WebSocket with fallback to localStorage
   useEffect(() => {
     if (!user) return;
     
     const connectWebSocket = () => {
       try {
         const token = localStorage.getItem('jwt');
-        const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
-        const wsUrl = `${window.location.origin.replace('http', 'ws')}/api/chat/ws?room=${currentRoom}${tokenParam}`;
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-        setConnectionStatus('connecting');
+        
+        // Try different WebSocket URLs
+        const wsUrls = [
+          `${window.location.origin.replace('http', 'ws')}/api/chat/ws?room=${currentRoom}&token=${encodeURIComponent(token || '')}`,
+          `ws://localhost:9092`, // Direct connection to tl-rtc-file
+          `wss://localhost:9092`
+        ];
 
-        ws.onopen = () => {
-          console.log('WebSocket connected');
-          setConnectionStatus('connected');
-          if (token) {
-            ws.send(JSON.stringify({ type: 'auth', token }));
+        let wsIndex = 0;
+        
+        const tryConnect = () => {
+          if (wsIndex >= wsUrls.length) {
+            console.log('All WebSocket URLs failed, using localStorage fallback');
+            setUseLocalStorage(true);
+            setConnectionStatus('disconnected');
+            toast({ 
+              title: 'Chat Offline Mode', 
+              description: 'Using local storage for messages. Real-time features unavailable.',
+              variant: 'default'
+            });
+            return;
           }
-          if (currentRoom) {
-            ws.send(JSON.stringify({ type: 'join', room: currentRoom }));
-          }
-          // Retry any queued messages
-          retryQueue.current.forEach(msg => {
-            try {
-              ws.send(JSON.stringify(msg));
-            } catch (error) {
-              console.error('Failed to send queued message:', error);
+
+          const wsUrl = wsUrls[wsIndex];
+          console.log(`Attempting to connect to: ${wsUrl}`);
+          
+          const ws = new WebSocket(wsUrl);
+          wsRef.current = ws;
+          setConnectionStatus('connecting');
+
+          ws.onopen = () => {
+            console.log('WebSocket connected to:', wsUrl);
+            setConnectionStatus('connected');
+            setUseLocalStorage(false);
+            
+            if (token) {
+              ws.send(JSON.stringify({ type: 'auth', token }));
             }
-          });
-          retryQueue.current = [];
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'message') {
-              setMessages(prev => [...prev, data.message]);
-            } else if (data.type === 'status') {
-              // delivery/read/online status
-              if (data.status === 'delivered' || data.status === 'read') {
-                setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, status: data.status } : m));
+            if (currentRoom) {
+              ws.send(JSON.stringify({ type: 'join', room: currentRoom, userId: user.id, userName: user.name }));
+            }
+            
+            // Retry any queued messages
+            retryQueue.current.forEach(msg => {
+              try {
+                ws.send(JSON.stringify(msg));
+              } catch (error) {
+                console.error('Failed to send queued message:', error);
               }
-            } else if (data.type === 'online') {
-              setOnlineUsers(data.users || {});
-            } else if (data.type === 'edit') {
-              setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, content: data.newContent, edited: true } : m));
-            } else if (data.type === 'delete') {
-              setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, deleted: true } : m));
+            });
+            retryQueue.current = [];
+          };
+
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'message') {
+                setMessages(prev => [...prev, data.message]);
+              } else if (data.type === 'status') {
+                if (data.status === 'delivered' || data.status === 'read') {
+                  setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, status: data.status } : m));
+                }
+              } else if (data.type === 'online') {
+                setOnlineUsers(data.users || {});
+              } else if (data.type === 'edit') {
+                setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, content: data.newContent, edited: true } : m));
+              } else if (data.type === 'delete') {
+                setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, deleted: true } : m));
+              }
+            } catch (error) {
+              console.error('Failed to parse WebSocket message:', error);
             }
-          } catch (error) {
-            console.error('Failed to parse WebSocket message:', error);
-          }
+          };
+
+          ws.onerror = (error) => {
+            console.error(`WebSocket error for ${wsUrl}:`, error);
+            ws.close();
+          };
+
+          ws.onclose = () => {
+            console.log(`WebSocket disconnected from: ${wsUrl}`);
+            setConnectionStatus('disconnected');
+            
+            // Try next URL
+            wsIndex++;
+            setTimeout(tryConnect, 1000);
+          };
         };
 
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          setConnectionStatus('disconnected');
-          toast({ 
-            title: 'Chat connection error', 
-            description: 'Unable to connect to chat service',
-            variant: 'destructive' 
-          });
-        };
-
-        ws.onclose = () => {
-          console.log('WebSocket disconnected');
-          setConnectionStatus('disconnected');
-          // Optionally auto-reconnect after a delay
-          setTimeout(() => {
-            if (user && currentRoom) {
-              connectWebSocket();
-            }
-          }, 5000);
-        };
+        tryConnect();
       } catch (error) {
         console.error('Failed to create WebSocket connection:', error);
         setConnectionStatus('disconnected');
+        setUseLocalStorage(true);
       }
     };
 
@@ -182,19 +224,24 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Add message to UI immediately
     setMessages(prev => [...prev, msg]);
 
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      // Queue for retry
-      retryQueue.current.push({ type: 'message', message: msg });
-      // Update status to failed after a delay
+    if (useLocalStorage || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      // Store locally when offline
       setTimeout(() => {
-        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'failed' } : m));
-      }, 3000);
+        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'sent' } : m));
+      }, 500);
+      
+      if (!useLocalStorage) {
+        // Queue for retry when connection comes back
+        retryQueue.current.push({ type: 'message', message: msg });
+        setTimeout(() => {
+          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'failed' } : m));
+        }, 3000);
+      }
       return;
     }
 
     try {
       wsRef.current.send(JSON.stringify({ type: 'message', message: msg }));
-      // Update status to sent
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'sent' } : m));
       
       // Audit/notify
@@ -214,6 +261,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const editMessage = async (msgId: string, newContent: string) => {
+    if (useLocalStorage) {
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: newContent, edited: true } : m));
+      return;
+    }
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
         wsRef.current.send(JSON.stringify({ type: 'edit', msgId, newContent }));
@@ -227,6 +279,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMessage = async (msgId: string) => {
+    if (useLocalStorage) {
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deleted: true } : m));
+      return;
+    }
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
         wsRef.current.send(JSON.stringify({ type: 'delete', msgId }));
@@ -241,9 +298,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const joinRoom = (room: string) => {
     setCurrentRoom(room);
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user) {
       try {
-        wsRef.current.send(JSON.stringify({ type: 'join', room }));
+        wsRef.current.send(JSON.stringify({ type: 'join', room, userId: user.id, userName: user.name }));
       } catch (error) {
         console.error('Failed to join room:', error);
       }
