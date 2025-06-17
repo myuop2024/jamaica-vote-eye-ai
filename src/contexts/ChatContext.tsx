@@ -88,100 +88,91 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const connectWebSocket = () => {
       try {
         const token = localStorage.getItem('jwt');
-        
-        // Try different WebSocket URLs
-        const wsUrls = [
-          `${window.location.origin.replace('http', 'ws')}/api/chat/ws?room=${currentRoom}&token=${encodeURIComponent(token || '')}`,
-          `ws://localhost:9092`, // Direct connection to tl-rtc-file
-          `wss://localhost:9092`
-        ];
+        const proxyWsUrl = `${window.location.origin.replace('http', 'ws')}/api/chat/ws?room=${currentRoom}&token=${encodeURIComponent(token || '')}`;
 
-        let wsIndex = 0;
-        
-        const tryConnect = () => {
-          if (wsIndex >= wsUrls.length) {
-            console.log('All WebSocket URLs failed, using localStorage fallback');
+        console.log(`Chat: Attempting WebSocket connection to proxy: ${proxyWsUrl}`);
+        const ws = new WebSocket(proxyWsUrl);
+        wsRef.current = ws;
+        setConnectionStatus('connecting');
+        let connectionEstablished = false; // Flag to track if onopen was called
+
+        ws.onopen = () => {
+          connectionEstablished = true;
+          console.log('Chat: WebSocket connected to proxy:', proxyWsUrl);
+          setConnectionStatus('connected');
+          setUseLocalStorage(false);
+
+          if (token) {
+            ws.send(JSON.stringify({ type: 'auth', token }));
+          }
+          if (currentRoom) {
+            ws.send(JSON.stringify({ type: 'join', room: currentRoom, userId: user.id, userName: user.name }));
+          }
+
+          retryQueue.current.forEach(msg => {
+            try {
+              ws.send(JSON.stringify(msg));
+            } catch (error) {
+              console.error('Failed to send queued message:', error);
+            }
+          });
+          retryQueue.current = [];
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'message') {
+              console.log(`ChatContext: Received message ${data.message.id} in room ${data.message.room}. Type: ${data.message.type}, Sender: ${data.message.senderName}`);
+              setMessages(prev => [...prev, data.message]);
+            } else if (data.type === 'status') {
+              console.log(`ChatContext: Status update for message ${data.msgId}. New status: ${data.status}`);
+              if (data.status === 'delivered' || data.status === 'read') {
+                setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, status: data.status } : m));
+              }
+            } else if (data.type === 'online') {
+              console.log('ChatContext: Online users updated:', data.users);
+              setOnlineUsers(data.users || {});
+            } else if (data.type === 'edit') {
+              console.log(`ChatContext: Message ${data.msgId} was edited remotely.`);
+              setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, content: data.newContent, edited: true } : m));
+            } else if (data.type === 'delete') {
+              console.log(`ChatContext: Message ${data.msgId} was deleted remotely.`);
+              setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, deleted: true } : m));
+            }
+          } catch (error) {
+            console.error('Failed to parse WebSocket message:', error);
+          }
+        };
+
+        ws.onerror = (errorEvent) => { // errorEvent is of type Event
+          console.error('Chat: WebSocket error with proxy:', proxyWsUrl, errorEvent);
+          // ws.close() will often be called automatically, triggering onclose.
+        };
+
+        ws.onclose = (closeEvent) => { // closeEvent is of type CloseEvent
+          console.log('Chat: WebSocket disconnected from proxy:', proxyWsUrl, 'Code:', closeEvent.code, 'Reason:', closeEvent.reason, 'Clean:', closeEvent.wasClean);
+          setConnectionStatus('disconnected');
+
+          if (!connectionEstablished || !closeEvent.wasClean) {
+            console.log('Chat: WebSocket connection to proxy failed or closed unexpectedly. Falling back to localStorage mode.');
             setUseLocalStorage(true);
-            setConnectionStatus('disconnected');
-            toast({ 
-              title: 'Chat Offline Mode', 
+            toast({
+              title: 'Chat Offline Mode',
               description: 'Using local storage for messages. Real-time features unavailable.',
               variant: 'default'
             });
-            return;
           }
-
-          const wsUrl = wsUrls[wsIndex];
-          console.log(`Attempting to connect to: ${wsUrl}`);
-          
-          const ws = new WebSocket(wsUrl);
-          wsRef.current = ws;
-          setConnectionStatus('connecting');
-
-          ws.onopen = () => {
-            console.log('WebSocket connected to:', wsUrl);
-            setConnectionStatus('connected');
-            setUseLocalStorage(false);
-            
-            if (token) {
-              ws.send(JSON.stringify({ type: 'auth', token }));
-            }
-            if (currentRoom) {
-              ws.send(JSON.stringify({ type: 'join', room: currentRoom, userId: user.id, userName: user.name }));
-            }
-            
-            // Retry any queued messages
-            retryQueue.current.forEach(msg => {
-              try {
-                ws.send(JSON.stringify(msg));
-              } catch (error) {
-                console.error('Failed to send queued message:', error);
-              }
-            });
-            retryQueue.current = [];
-          };
-
-          ws.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              if (data.type === 'message') {
-                setMessages(prev => [...prev, data.message]);
-              } else if (data.type === 'status') {
-                if (data.status === 'delivered' || data.status === 'read') {
-                  setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, status: data.status } : m));
-                }
-              } else if (data.type === 'online') {
-                setOnlineUsers(data.users || {});
-              } else if (data.type === 'edit') {
-                setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, content: data.newContent, edited: true } : m));
-              } else if (data.type === 'delete') {
-                setMessages(prev => prev.map(m => m.id === data.msgId ? { ...m, deleted: true } : m));
-              }
-            } catch (error) {
-              console.error('Failed to parse WebSocket message:', error);
-            }
-          };
-
-          ws.onerror = (error) => {
-            console.error(`WebSocket error for ${wsUrl}:`, error);
-            ws.close();
-          };
-
-          ws.onclose = () => {
-            console.log(`WebSocket disconnected from: ${wsUrl}`);
-            setConnectionStatus('disconnected');
-            
-            // Try next URL
-            wsIndex++;
-            setTimeout(tryConnect, 1000);
-          };
         };
-
-        tryConnect();
       } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
+        console.error('Chat: Failed to create WebSocket connection:', error);
         setConnectionStatus('disconnected');
         setUseLocalStorage(true);
+        toast({
+            title: 'Chat Connection Error',
+            description: 'Could not initiate chat connection. Using offline mode.',
+            variant: 'destructive'
+        });
       }
     };
 
@@ -224,7 +215,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Add message to UI immediately
     setMessages(prev => [...prev, msg]);
 
+    console.log(`ChatContext: Attempting to send message ${msg.id} to room ${room}. Type: ${msg.type}, Receiver: ${msg.receiverName || 'N/A'}`);
     if (useLocalStorage || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.log(`ChatContext: WebSocket not open. Message ${msg.id} will be handled by localStorage/queue. useLocalStorage: ${useLocalStorage}`);
       // Store locally when offline
       setTimeout(() => {
         setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'sent' } : m));
@@ -242,6 +235,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       wsRef.current.send(JSON.stringify({ type: 'message', message: msg }));
+      console.log(`ChatContext: Message ${msg.id} sent successfully via WebSocket to room ${room}.`);
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'sent' } : m));
       
       // Audit/notify
@@ -255,12 +249,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error(`ChatContext: Failed to send message ${msg.id} via WebSocket. Error:`, error);
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'failed' } : m));
     }
   };
 
   const editMessage = async (msgId: string, newContent: string) => {
+    console.log(`ChatContext: Attempting to edit message ${msgId} in room ${currentRoom}.`);
     if (useLocalStorage) {
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: newContent, edited: true } : m));
       return;
@@ -273,12 +268,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await notifyChatEvent(user.id, 'chat_message_edited', `Message edited in ${currentRoom}`, { msgId });
         }
       } catch (error) {
-        console.error('Failed to edit message:', error);
+        console.error(`ChatContext: Failed to send edit for message ${msgId}. Error:`, error);
       }
     }
   };
 
   const deleteMessage = async (msgId: string) => {
+    console.log(`ChatContext: Attempting to delete message ${msgId} in room ${currentRoom}.`);
     if (useLocalStorage) {
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, deleted: true } : m));
       return;
@@ -291,41 +287,45 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await notifyChatEvent(user.id, 'chat_message_deleted', `Message deleted in ${currentRoom}`, { msgId });
         }
       } catch (error) {
-        console.error('Failed to delete message:', error);
+        console.error(`ChatContext: Failed to send delete for message ${msgId}. Error:`, error);
       }
     }
   };
 
   const joinRoom = (room: string) => {
+    console.log(`ChatContext: User ${user?.id} attempting to join room: ${room}. Current WebSocket state: ${wsRef.current?.readyState}`);
     setCurrentRoom(room);
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && user) {
       try {
         wsRef.current.send(JSON.stringify({ type: 'join', room, userId: user.id, userName: user.name }));
       } catch (error) {
-        console.error('Failed to join room:', error);
+        console.error(`ChatContext: Failed to send join message for room ${room}. Error:`, error);
       }
     }
   };
 
   const leaveRoom = (room: string) => {
+    console.log(`ChatContext: User ${user?.id} attempting to leave room: ${room}. Current WebSocket state: ${wsRef.current?.readyState}`);
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
         wsRef.current.send(JSON.stringify({ type: 'leave', room }));
       } catch (error) {
-        console.error('Failed to leave room:', error);
+        console.error(`ChatContext: Failed to send leave message for room ${room}. Error:`, error);
       }
     }
     setCurrentRoom('');
   };
 
   const uploadFile = async (file: File, room: string) => {
+    const filePath = `${room}/${Date.now()}_${file.name}`;
+    console.log(`ChatContext: Attempting to upload file "${file.name}" to room "${room}", path: "${filePath}".`);
     try {
       // Upload to Supabase Storage
-      const filePath = `${room}/${Date.now()}_${file.name}`;
       const { data, error } = await supabase.storage.from('chat-files').upload(filePath, file, { upsert: false });
       if (error) throw error;
       
       const { data: { publicUrl } } = supabase.storage.from('chat-files').getPublicUrl(filePath);
+      console.log(`ChatContext: File "${file.name}" uploaded successfully to room "${room}". Public URL: ${publicUrl}`);
       return { url: publicUrl, name: file.name };
     } catch (error) {
       console.error('File upload failed:', error);

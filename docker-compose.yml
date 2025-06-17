@@ -1,5 +1,15 @@
 # ... existing services ...
   chat:
+    # Configuration for tl-rtc-file (iamtsm/tl-rtc-file):
+    # This service might require its own environment configuration, typically via a
+    # 'tlrtcfile.env' file, for production or advanced scenarios (e.g., TURN server setup,
+    # custom domains, database integration for chat history/monitoring if used).
+    # Refer to the tl-rtc-file documentation for details on its environment variables.
+    # If a custom tlrtcfile.env is needed, you might need to mount it as a volume:
+    #   volumes:
+    #     - ./path/to/your/tlrtcfile.env:/app/tlrtcfile.env
+    # Or, pass specific environment variables directly under the 'environment:' key if supported.
+    # The default settings within the image might only be suitable for localhost testing.
     image: iamtsm/tl-rtc-file:latest
     container_name: chat-service
     ports:
