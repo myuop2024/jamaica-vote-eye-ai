@@ -30,8 +30,9 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
     email: '',
     name: '',
     phoneNumber: '',
-    role: 'observer',
+    role: 'observer' as const,
     assignedStation: '',
+    deploymentParish: '',
     parish: '',
     address: '',
     bankName: '',
@@ -51,15 +52,14 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
   };
 
   const handleAddressSelect = (addressData: any) => {
-    // Auto-fill parish if it can be determined from the address
     if (addressData.address?.state && JAMAICAN_PARISHES.includes(addressData.address.state)) {
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData((prev) => ({
+        ...prev,
         address: addressData.address.label,
-        parish: addressData.address.state 
+        parish: addressData.address.state
       }));
     } else {
-      setFormData(prev => ({ ...prev, address: addressData.address.label }));
+      setFormData((prev) => ({ ...prev, address: addressData.address.label }));
     }
   };
 
@@ -110,6 +110,7 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
           .from('profiles')
           .update({
             assigned_station: formData.assignedStation.trim() || null,
+            deployment_parish: formData.deploymentParish || null,
             parish: formData.parish || null,
             address: formData.address.trim() || null,
             bank_name: formData.bankName.trim() || null,
@@ -134,6 +135,7 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
         phoneNumber: '',
         role: 'observer',
         assignedStation: '',
+        deploymentParish: '',
         parish: '',
         address: '',
         bankName: '',
@@ -161,6 +163,7 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
         phoneNumber: '',
         role: 'observer',
         assignedStation: '',
+        deploymentParish: '',
         parish: '',
         address: '',
         bankName: '',
@@ -260,14 +263,14 @@ export const AddUserDialog: React.FC<AddUserDialogProps> = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="parish">Parish</Label>
+                <Label htmlFor="deployment-parish">Deployment Parish</Label>
                 <Select
-                  value={formData.parish}
-                  onValueChange={(value) => handleInputChange('parish', value)}
+                  value={formData.deploymentParish}
+                  onValueChange={(value) => handleInputChange('deploymentParish', value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select parish" />
+                    <SelectValue placeholder="Select deployment parish" />
                   </SelectTrigger>
                   <SelectContent>
                     {JAMAICAN_PARISHES.map((parish) => (

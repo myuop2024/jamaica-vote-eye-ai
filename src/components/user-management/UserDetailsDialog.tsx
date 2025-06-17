@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +25,7 @@ interface UserProfile {
   verification_status: 'pending' | 'verified' | 'rejected';
   phone_number?: string;
   assigned_station?: string;
+  deploymentParish?: string;
   parish?: string;
   address?: string;
   bank_name?: string;
@@ -148,6 +148,13 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
               </h4>
               
               <div className="space-y-3">
+                {user.deploymentParish && (
+                  <div className="grid grid-cols-3 gap-4 py-2 border-b">
+                    <p className="text-sm font-medium text-gray-500">Deployment Parish</p>
+                    <p className="text-sm col-span-2">{user.deploymentParish}</p>
+                  </div>
+                )}
+
                 {user.parish && (
                   <div className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />

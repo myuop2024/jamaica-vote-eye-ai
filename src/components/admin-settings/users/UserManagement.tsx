@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -47,6 +46,7 @@ export const UserManagement = () => {
         profileImage: profile.profile_image,
         phoneNumber: profile.phone_number,
         assignedStation: profile.assigned_station,
+        deploymentParish: profile.deployment_parish,
         parish: profile.parish,
         address: profile.address,
         bankName: profile.bank_name,

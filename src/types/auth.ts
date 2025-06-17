@@ -1,13 +1,13 @@
-
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'observer' | 'roving_observer' | 'parish_coordinator';
+  role: 'admin' | 'observer' | 'parish_coordinator' | 'roving_observer';
   verificationStatus: 'pending' | 'verified' | 'rejected';
   profileImage?: string;
   phoneNumber?: string;
   assignedStation?: string;
+  deploymentParish?: string;
   parish?: string;
   address?: string;
   bankName?: string;

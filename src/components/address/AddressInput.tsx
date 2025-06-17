@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,6 +82,13 @@ export const AddressInput: React.FC<AddressInputProps> = ({
       setShowSuggestions(jamaicanResults.length > 0);
     } catch (error) {
       console.error('Error fetching address suggestions:', error);
+      
+      // Check if it's a service initialization error
+      if (error instanceof Error && error.message.includes('not initialized')) {
+        console.warn('HERE Maps service not initialized. Address suggestions disabled.');
+        // Still allow manual address entry
+      }
+      
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -111,15 +117,28 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   };
 
   const handleSuggestionSelect = (suggestion: PlaceSearchResult) => {
-    const hereMapsService = getHereMapsService();
-    const formattedAddress = hereMapsService.formatAddress(suggestion.address);
-    
-    setInputValue(formattedAddress);
-    setSelectedCoordinates(suggestion.position);
-    setShowSuggestions(false);
-    
-    onChange?.(formattedAddress, suggestion.position);
-    onAddressSelect?.(suggestion);
+    try {
+      const hereMapsService = getHereMapsService();
+      const formattedAddress = hereMapsService.formatAddress(suggestion.address);
+      
+      setInputValue(formattedAddress);
+      setSelectedCoordinates(suggestion.position);
+      setShowSuggestions(false);
+      
+      onChange?.(formattedAddress, suggestion.position);
+      onAddressSelect?.(suggestion);
+    } catch (error) {
+      console.error('Error formatting address:', error);
+      
+      // Fallback to basic formatting if service unavailable
+      const basicAddress = suggestion.address.label || suggestion.title;
+      setInputValue(basicAddress);
+      setSelectedCoordinates(suggestion.position);
+      setShowSuggestions(false);
+      
+      onChange?.(basicAddress, suggestion.position);
+      onAddressSelect?.(suggestion);
+    }
   };
 
   const clearInput = () => {
@@ -163,7 +182,12 @@ export const AddressInput: React.FC<AddressInputProps> = ({
           }
         } catch (error) {
           console.error('Error reverse geocoding location:', error);
-          alert('Could not get address for your location.');
+          
+          if (error instanceof Error && error.message.includes('not initialized')) {
+            alert('Address lookup service not available. Please enter address manually.');
+          } else {
+            alert('Could not get address for your location.');
+          }
         } finally {
           setIsLoading(false);
         }

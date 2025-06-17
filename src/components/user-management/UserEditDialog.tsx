@@ -27,6 +27,7 @@ interface UserProfile {
   trn?: string;
   created_at: string;
   last_login?: string;
+  deployment_parish?: string;
 }
 
 interface UserEditDialogProps {
@@ -47,29 +48,33 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    verification_status: 'pending' as 'pending' | 'verified' | 'rejected',
-    phone_number: '',
-    assigned_station: '',
-    parish: '',
-    address: '',
-    bank_name: '',
-    bank_account_number: '',
-    bank_routing_number: '',
-    trn: ''
+    name: user?.name || '',
+    phoneNumber: user?.phone_number || '',
+    role: user?.role || 'observer',
+    assignedStation: user?.assigned_station || '',
+    deploymentParish: user?.deployment_parish || '',
+    parish: user?.parish || '',
+    address: user?.address || '',
+    bankName: user?.bank_name || '',
+    bankAccountNumber: user?.bank_account_number || '',
+    bankRoutingNumber: user?.bank_routing_number || '',
+    trn: user?.trn || '',
   });
 
   useEffect(() => {
     if (user) {
       setFormData({
-        verification_status: user.verification_status,
-        phone_number: user.phone_number || '',
-        assigned_station: user.assigned_station || '',
+        name: user.name,
+        phoneNumber: user.phone_number || '',
+        role: user.role,
+        assignedStation: user.assigned_station || '',
+        deploymentParish: user.deployment_parish || '',
         parish: user.parish || '',
         address: user.address || '',
-        bank_name: user.bank_name || '',
-        bank_account_number: user.bank_account_number || '',
-        bank_routing_number: user.bank_routing_number || '',
-        trn: user.trn || ''
+        bankName: user.bank_name || '',
+        bankAccountNumber: user.bank_account_number || '',
+        bankRoutingNumber: user.bank_routing_number || '',
+        trn: user.trn || '',
       });
     }
   }, [user]);
@@ -93,15 +98,14 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   };
 
   const handleAddressSelect = (addressData: any) => {
-    // Auto-fill parish if it can be determined from the address
     if (addressData.address?.state && JAMAICAN_PARISHES.includes(addressData.address.state)) {
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData((prev) => ({
+        ...prev,
         address: addressData.address.label,
-        parish: addressData.address.state 
+        parish: addressData.address.state
       }));
     } else {
-      setFormData(prev => ({ ...prev, address: addressData.address.label }));
+      setFormData((prev) => ({ ...prev, address: addressData.address.label }));
     }
   };
 
@@ -122,15 +126,18 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          verification_status: formData.verification_status,
-          phone_number: formData.phone_number.trim() || null,
-          assigned_station: formData.assigned_station.trim() || null,
+          name: formData.name.trim(),
+          phone_number: formData.phoneNumber.trim() || null,
+          role: formData.role,
+          assigned_station: formData.assignedStation.trim() || null,
+          deployment_parish: formData.deploymentParish || null,
           parish: formData.parish || null,
           address: formData.address.trim() || null,
-          bank_name: formData.bank_name.trim() || null,
-          bank_account_number: formData.bank_account_number.trim() || null,
-          bank_routing_number: formData.bank_routing_number.trim() || null,
-          trn: formData.trn.replace(/\s/g, '') || null
+          bank_name: formData.bankName.trim() || null,
+          bank_account_number: formData.bankAccountNumber.trim() || null,
+          bank_routing_number: formData.bankRoutingNumber.trim() || null,
+          trn: formData.trn.replace(/\s/g, '') || null,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
 
@@ -195,8 +202,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="phone_number">Phone Number</Label>
                 <Input
                   id="phone_number"
-                  value={formData.phone_number}
-                  onChange={(e) => handleInputChange('phone_number', e.target.value)}
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                   disabled={isLoading}
                   placeholder="+1 876-XXX-XXXX"
                 />
@@ -210,14 +217,14 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="parish">Parish</Label>
+                <Label htmlFor="deployment-parish">Deployment Parish</Label>
                 <Select
-                  value={formData.parish}
-                  onValueChange={(value) => handleInputChange('parish', value)}
+                  value={formData.deploymentParish}
+                  onValueChange={(value) => handleInputChange('deploymentParish', value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select parish" />
+                    <SelectValue placeholder="Select deployment parish" />
                   </SelectTrigger>
                   <SelectContent>
                     {JAMAICAN_PARISHES.map((parish) => (
@@ -233,8 +240,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="assigned_station">Assigned Station</Label>
                 <Input
                   id="assigned_station"
-                  value={formData.assigned_station}
-                  onChange={(e) => handleInputChange('assigned_station', e.target.value)}
+                  value={formData.assignedStation}
+                  onChange={(e) => handleInputChange('assignedStation', e.target.value)}
                   disabled={isLoading}
                   placeholder="Station name or code"
                 />
@@ -261,8 +268,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="bank_name">Bank Name</Label>
                 <Input
                   id="bank_name"
-                  value={formData.bank_name}
-                  onChange={(e) => handleInputChange('bank_name', e.target.value)}
+                  value={formData.bankName}
+                  onChange={(e) => handleInputChange('bankName', e.target.value)}
                   disabled={isLoading}
                   placeholder="Bank name"
                 />
@@ -272,8 +279,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="bank_account_number">Account Number</Label>
                 <Input
                   id="bank_account_number"
-                  value={formData.bank_account_number}
-                  onChange={(e) => handleInputChange('bank_account_number', e.target.value)}
+                  value={formData.bankAccountNumber}
+                  onChange={(e) => handleInputChange('bankAccountNumber', e.target.value)}
                   disabled={isLoading}
                   placeholder="Account number"
                 />
@@ -283,8 +290,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="bank_routing_number">Routing Number</Label>
                 <Input
                   id="bank_routing_number"
-                  value={formData.bank_routing_number}
-                  onChange={(e) => handleInputChange('bank_routing_number', e.target.value)}
+                  value={formData.bankRoutingNumber}
+                  onChange={(e) => handleInputChange('bankRoutingNumber', e.target.value)}
                   disabled={isLoading}
                   placeholder="Routing number"
                 />

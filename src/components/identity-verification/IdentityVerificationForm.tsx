@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,9 +19,15 @@ export const IdentityVerificationForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    phoneNumber: '',
-    parish: '',
+    firstName: '',
+    lastName: '',
+    dateOfBirth: '',
     address: '',
+    deploymentParish: '',
+    parish: '',
+    phoneNumber: '',
+    idType: 'national_id' as const,
+    idNumber: '',
     bankName: '',
     bankAccountNumber: '',
     bankRoutingNumber: '',
@@ -40,19 +45,19 @@ export const IdentityVerificationForm: React.FC = () => {
   };
 
   const handleAddressSelect = (addressData: any) => {
-    // Auto-fill parish if it can be determined from the address
     if (addressData.address?.state && JAMAICAN_PARISHES.includes(addressData.address.state)) {
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData((prev) => ({
+        ...prev,
         address: addressData.address.label,
-        parish: addressData.address.state 
+        parish: addressData.address.state
       }));
     } else {
-      setFormData(prev => ({ ...prev, address: addressData.address.label }));
+      setFormData((prev) => ({ ...prev, address: addressData.address.label }));
     }
   };
 
   const validateForm = () => {
+    if (!formData.deploymentParish) return 'Deployment Parish is required';
     if (!formData.phoneNumber.trim()) return 'Phone number is required';
     if (!formData.parish) return 'Parish is required';
     if (!formData.address.trim()) return 'Address is required';
@@ -83,18 +88,26 @@ export const IdentityVerificationForm: React.FC = () => {
     setError(null);
 
     try {
+      const verificationData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        date_of_birth: formData.dateOfBirth,
+        address: formData.address,
+        deployment_parish: formData.deploymentParish,
+        parish: formData.parish,
+        phone_number: formData.phoneNumber,
+        id_type: formData.idType,
+        id_number: formData.idNumber,
+        bank_name: formData.bankName.trim() || null,
+        bank_account_number: formData.bankAccountNumber.trim() || null,
+        bank_routing_number: formData.bankRoutingNumber.trim() || null,
+        trn: formData.trn.replace(/\s/g, '') || null,
+        verification_status: 'pending'
+      };
+
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({
-          phone_number: formData.phoneNumber.trim(),
-          parish: formData.parish,
-          address: formData.address.trim(),
-          bank_name: formData.bankName.trim() || null,
-          bank_account_number: formData.bankAccountNumber.trim() || null,
-          bank_routing_number: formData.bankRoutingNumber.trim() || null,
-          trn: formData.trn.replace(/\s/g, '') || null,
-          verification_status: 'pending'
-        })
+        .update(verificationData)
         .eq('id', user.id);
 
       if (updateError) throw updateError;
@@ -105,15 +118,7 @@ export const IdentityVerificationForm: React.FC = () => {
       });
 
       // Reset form
-      setFormData({
-        phoneNumber: '',
-        parish: '',
-        address: '',
-        bankName: '',
-        bankAccountNumber: '',
-        bankRoutingNumber: '',
-        trn: ''
-      });
+      resetForm();
 
     } catch (error: any) {
       console.error('Error submitting verification:', error);
@@ -121,6 +126,24 @@ export const IdentityVerificationForm: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      firstName: '',
+      lastName: '',
+      dateOfBirth: '',
+      address: '',
+      deploymentParish: '',
+      parish: '',
+      phoneNumber: '',
+      idType: 'national_id',
+      idNumber: '',
+      bankName: '',
+      bankAccountNumber: '',
+      bankRoutingNumber: '',
+      trn: ''
+    });
   };
 
   return (
@@ -170,14 +193,14 @@ export const IdentityVerificationForm: React.FC = () => {
             </h3>
             
             <div className="space-y-2">
-              <Label htmlFor="parish">Parish *</Label>
+              <Label htmlFor="deployment-parish">Deployment Parish *</Label>
               <Select
-                value={formData.parish}
-                onValueChange={(value) => handleInputChange('parish', value)}
+                value={formData.deploymentParish}
+                onValueChange={(value) => handleInputChange('deploymentParish', value)}
                 disabled={isLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your parish" />
+                  <SelectValue placeholder="Select your deployment parish" />
                 </SelectTrigger>
                 <SelectContent>
                   {JAMAICAN_PARISHES.map((parish) => (

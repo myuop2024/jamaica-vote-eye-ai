@@ -27,6 +27,7 @@ export const ObserverDashboard: React.FC = () => {
     name: user?.name || '',
     phoneNumber: user?.phoneNumber || '',
     assignedStation: user?.assignedStation || '',
+    deploymentParish: user?.deploymentParish || '',
     parish: user?.parish || '',
     address: user?.address || '',
     bankName: user?.bankName || '',
@@ -55,6 +56,7 @@ export const ObserverDashboard: React.FC = () => {
         name: user.name || '',
         phoneNumber: user.phoneNumber || '',
         assignedStation: user.assignedStation || '',
+        deploymentParish: user.deploymentParish || '',
         parish: user.parish || '',
         address: user.address || '',
         bankName: user.bankName || '',
@@ -174,6 +176,7 @@ export const ObserverDashboard: React.FC = () => {
           name: profileForm.name.trim(),
           phone_number: encryptedPhone,
           assigned_station: profileForm.assignedStation.trim() || null,
+          deployment_parish: profileForm.deploymentParish || null,
           parish: profileForm.parish || null,
           address: profileForm.address.trim() || null,
           bank_name: profileForm.bankName.trim() || null,
@@ -305,14 +308,14 @@ export const ObserverDashboard: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="profile-parish">Parish</Label>
+                    <Label htmlFor="profile-deployment-parish">Deployment Parish</Label>
                     <Select
-                      value={profileForm.parish}
-                      onValueChange={(value) => handleProfileInput('parish', value)}
+                      value={profileForm.deploymentParish}
+                      onValueChange={(value) => handleProfileInput('deploymentParish', value)}
                       disabled={profileLoading}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select parish" />
+                        <SelectValue placeholder="Select deployment parish" />
                       </SelectTrigger>
                       <SelectContent>
                         {JAMAICAN_PARISHES.map((parish) => (
