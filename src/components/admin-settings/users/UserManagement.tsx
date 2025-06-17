@@ -41,7 +41,6 @@ export const UserManagement = () => {
           profile_image,
           phone_number,
           assigned_station,
-          deployment_parish,
           parish,
           address,
           bank_name,
@@ -64,7 +63,7 @@ export const UserManagement = () => {
         profileImage: profile.profile_image,
         phoneNumber: profile.phone_number,
         assignedStation: profile.assigned_station,
-        deploymentParish: profile.deployment_parish || undefined,
+        deploymentParish: undefined, // Will be added once column exists
         parish: profile.parish,
         address: profile.address,
         bankName: profile.bank_name,
