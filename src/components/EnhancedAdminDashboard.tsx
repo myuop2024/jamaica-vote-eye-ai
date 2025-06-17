@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { DashboardOverview } from '@/components/admin-dashboard/DashboardOverview';
 import { ManagementNavigation } from '@/components/admin-dashboard/ManagementNavigation';
-import { UserManagement } from '@/components/UserManagement';
+import { UserManagement } from '@/components/admin-settings/users/UserManagement';
 import { CommunicationsManager } from '@/components/CommunicationsManager';
 import { VerificationCenter } from '@/components/VerificationCenter';
 import { ReportsManager } from '@/components/ReportsManager';
@@ -16,14 +17,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { Users, MapPin, FileText, MessageSquare, Shield, Lock, Activity } from 'lucide-react';
 
 export const EnhancedAdminDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user } = useAuth();
   
   const [activeSection, setActiveSection] = useState('overview');
   
@@ -174,62 +170,3 @@ export const EnhancedAdminDashboard: React.FC = () => {
     </AdminLayout>
   );
 };
-
-const managementOptions = [
-  {
-    title: "User Management",
-    description: "Manage observers, admins, and user verification",
-    icon: Users,
-    path: "/admin/users",
-    color: "bg-blue-500"
-  },
-  {
-    title: "Polling Stations",
-    description: "Configure stations and assign observers",
-    icon: MapPin,
-    path: "/admin/stations",
-    color: "bg-green-500"
-  },
-  {
-    title: "Reports & Analytics",
-    description: "View reports and system analytics",
-    icon: FileText,
-    path: "/admin/reports",
-    color: "bg-purple-500"
-  },
-  {
-    title: "Communications",
-    description: "Manage SMS campaigns and messaging",
-    icon: MessageSquare,
-    path: "/admin/communications",
-    color: "bg-orange-500"
-  },
-  {
-    title: "System Settings",
-    description: "Configure system preferences and integrations",
-    icon: Settings,
-    path: "/admin/settings",
-    color: "bg-gray-600"
-  },
-  {
-    title: "Identity Verification",
-    description: "Manage Didit integration and verification",
-    icon: Shield,
-    path: "/admin/verification",
-    color: "bg-indigo-500"
-  },
-  {
-    title: "Encryption Management", 
-    description: "Military-grade encryption and security controls",
-    icon: Lock,
-    path: "/admin/encryption",
-    color: "bg-red-500"
-  },
-  {
-    title: "System Monitoring",
-    description: "Monitor system health and performance",
-    icon: Activity,
-    path: "/admin/monitoring",
-    color: "bg-cyan-500"
-  }
-];

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
@@ -18,9 +19,20 @@ import EncryptionManagement from '@/pages/EncryptionManagement';
 import { ChatProvider } from '@/contexts/ChatContext';
 import { FloatingChatButton } from '@/components/chat/FloatingChatButton';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        console.log('Query retry attempt:', failureCount, error);
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 function App() {
+  console.log('App: Rendering main application');
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
