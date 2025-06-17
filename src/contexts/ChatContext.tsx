@@ -1,3 +1,4 @@
+
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
@@ -134,10 +135,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast({ title: 'Error', description: 'Could not fetch chat history.', variant: 'destructive' });
       } else {
         const historicalMessages = data.map(msg => ({
-          ...msg,
+          id: msg.id,
+          room: msg.room,
+          senderId: msg.sender_id,
+          senderName: msg.sender_name,
+          receiverId: msg.receiver_id,
+          receiverName: msg.receiver_name,
           content: msg.deleted ? msg.content : decryptMessage(msg.content, msg.id),
+          type: msg.type,
+          fileUrl: msg.file_url,
+          fileName: msg.file_name,
           timestamp: new Date(msg.created_at).getTime(),
-          status: 'sent',
+          status: 'sent' as const,
+          edited: msg.edited,
+          deleted: msg.deleted,
         })).reverse(); // Reverse to show oldest first
         setMessages(historicalMessages);
       }
