@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import chatProxy from './chatProxy';
+import http from 'http';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,7 +18,9 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
