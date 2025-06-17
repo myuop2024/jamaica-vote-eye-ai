@@ -134,7 +134,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         const historicalMessages = data.map(msg => ({
           ...msg,
-          content: decryptMessage(msg.content, msg.id), // Decrypt historical messages
+          content: msg.deleted ? msg.content : decryptMessage(msg.content, msg.id),
           timestamp: new Date(msg.created_at).getTime(),
           status: 'sent',
         })).reverse(); // Reverse to show oldest first
