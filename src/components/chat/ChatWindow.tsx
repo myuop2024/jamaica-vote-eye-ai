@@ -134,7 +134,7 @@ export const ChatWindow: React.FC = () => {
   };
 
   return (
-    <div className="chat-window border rounded shadow-lg flex flex-col h-[600px] w-full max-w-2xl mx-auto bg-white">
+    <div className="chat-window border rounded shadow-lg flex flex-col h-[80vh] sm:h-[600px] w-full max-w-2xl mx-auto bg-white">
       <div className="flex items-center border-b p-2 bg-gray-100 space-x-2">
         <select value={room} onChange={e => { setSelectedUser(null); setRoom(e.target.value); }} className="border rounded px-2 py-1">
           <option value="">Select Room</option>

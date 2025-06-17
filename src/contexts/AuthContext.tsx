@@ -28,12 +28,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('AuthProvider: Auth state change', { event: _event, session: !!session });
-      
+
       if (session?.user) {
         // Not awaiting fetchUserProfile here prevents deadlocks.
         // The state will update once the async operation is done.
+        if (session.access_token) {
+          localStorage.setItem('jwt', session.access_token);
+        }
         fetchUserProfile(session.user.id, session.user.email || '');
       } else {
+        localStorage.removeItem('jwt');
         setUser(null);
         setIsLoading(false);
       }
@@ -171,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await supabase.auth.signOut();
+      localStorage.removeItem('jwt');
       setUser(null);
       toast({
         title: "Success",
