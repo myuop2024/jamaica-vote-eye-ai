@@ -11,7 +11,7 @@ import { initializeHereMapsService } from '@/services/hereMapsService'
 // Initialize HERE Maps service with environment variable or fallback
 const initializeServices = async () => {
   try {
-    const apiKey = import.meta.env.VITE_HERE_MAPS_API_KEY;
+    const apiKey = import.meta.env.FiVITE_HERE_MAPS_API_KEY;
     if (apiKey) {
       initializeHereMapsService(apiKey);
       console.log('HERE Maps service initialized from environment variable');

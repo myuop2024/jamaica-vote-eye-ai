@@ -138,11 +138,10 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
           address: formData.address.trim() || null,
           bank_name: formData.bankName.trim() || null,
           bank_account_number: formData.bankAccountNumber.trim() || null,
-          bank_routing_number: formData.bankRoutingNumber.trim() || null,
-          trn: formData.trn.replace(/\s/g, '') || null,
-          verification_status: formData.verificationStatus,
-          updated_at: new Date().toISOString(),
-        })
+                      bank_routing_number: formData.bankRoutingNumber.trim() || null,
+            trn: formData.trn.replace(/\s/g, '') || null,
+            verification_status: formData.verificationStatus,
+          })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
