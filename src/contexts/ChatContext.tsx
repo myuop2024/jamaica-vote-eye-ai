@@ -1,4 +1,3 @@
-
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
@@ -142,7 +141,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           receiverId: msg.receiver_id,
           receiverName: msg.receiver_name,
           content: msg.deleted ? msg.content : decryptMessage(msg.content, msg.id),
-          type: msg.type,
+          type: msg.type as 'text' | 'file' | 'system',
           fileUrl: msg.file_url,
           fileName: msg.file_name,
           timestamp: new Date(msg.created_at).getTime(),
