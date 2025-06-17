@@ -32,7 +32,25 @@ export const UserManagement = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          id,
+          email,
+          name,
+          role,
+          verification_status,
+          profile_image,
+          phone_number,
+          assigned_station,
+          deployment_parish,
+          parish,
+          address,
+          bank_name,
+          bank_account_number,
+          bank_routing_number,
+          trn,
+          created_at,
+          last_login
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
