@@ -46,7 +46,7 @@ export const UserManagement = () => {
         profileImage: profile.profile_image,
         phoneNumber: profile.phone_number,
         assignedStation: profile.assigned_station,
-        deploymentParish: profile.deployment_parish,
+        deploymentParish: profile.deployment_parish || undefined,
         parish: profile.parish,
         address: profile.address,
         bankName: profile.bank_name,

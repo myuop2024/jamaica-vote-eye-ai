@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
     bankAccountNumber: user?.bank_account_number || '',
     bankRoutingNumber: user?.bank_routing_number || '',
     trn: user?.trn || '',
+    verificationStatus: user?.verification_status || 'pending' as 'pending' | 'verified' | 'rejected',
   });
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
         bankAccountNumber: user.bank_account_number || '',
         bankRoutingNumber: user.bank_routing_number || '',
         trn: user.trn || '',
+        verificationStatus: user.verification_status,
       });
     }
   }, [user]);
@@ -137,6 +140,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
           bank_account_number: formData.bankAccountNumber.trim() || null,
           bank_routing_number: formData.bankRoutingNumber.trim() || null,
           trn: formData.trn.replace(/\s/g, '') || null,
+          verification_status: formData.verificationStatus,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -148,7 +152,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
         description: 'User profile updated successfully.',
       });
 
-      onUpdateStatus(user.id, formData.verification_status);
+      onUpdateStatus(user.id, formData.verificationStatus);
       onClose();
 
     } catch (error: any) {
@@ -183,8 +187,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
               <div className="space-y-2">
                 <Label>Verification Status</Label>
                 <Select
-                  value={formData.verification_status}
-                  onValueChange={(value) => handleInputChange('verification_status', value)}
+                  value={formData.verificationStatus}
+                  onValueChange={(value) => handleInputChange('verificationStatus', value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>

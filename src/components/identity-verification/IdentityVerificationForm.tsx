@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,7 +103,7 @@ export const IdentityVerificationForm: React.FC = () => {
         bank_account_number: formData.bankAccountNumber.trim() || null,
         bank_routing_number: formData.bankRoutingNumber.trim() || null,
         trn: formData.trn.replace(/\s/g, '') || null,
-        verification_status: 'pending'
+        verification_status: 'pending' as const
       };
 
       const { error: updateError } = await supabase
