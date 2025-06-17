@@ -35,6 +35,8 @@ function decryptMessage(ciphertext: string, messageId?: string): string {
   }
 }
 
+const generateUUID = () => crypto.randomUUID();
+
 export interface ChatMessage {
   id: string;
   room: string;
