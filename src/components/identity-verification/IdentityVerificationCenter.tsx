@@ -3,6 +3,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Shield, CheckCircle, Clock, XCircle, RefreshCw, AlertTriangle } from 'lucide-react';
@@ -195,42 +203,47 @@ export const IdentityVerificationCenter: React.FC = () => {
                   <p className="text-sm">Complete your verification above</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {userVerifications.map((verification) => (
-                    <div
-                      key={verification.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(verification.status)}
-                        <div>
-                          <div className="font-medium">
-                            {verification.verification_method.charAt(0).toUpperCase() + 
-                             verification.verification_method.slice(1)} Verification
-                          </div>
-                          <div className="text-sm text-gray-500">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-1/4">Method</TableHead>
+                        <TableHead className="w-1/4">Document</TableHead>
+                        <TableHead className="w-1/4">Date</TableHead>
+                        <TableHead className="w-1/4 text-right">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userVerifications.map((verification) => (
+                        <TableRow key={verification.id}>
+                          <TableCell className="font-medium capitalize">
+                            {verification.verification_method}
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {verification.document_type ? verification.document_type.replace('_', ' ') : '-'}
+                          </TableCell>
+                          <TableCell>
                             {new Date(verification.created_at).toLocaleDateString()}
-                            {verification.document_type && (
-                              <span className="ml-2">• {verification.document_type.replace('_', ' ')}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(verification.status)}
-                        {verification.status === 'pending' && verification.didit_session_id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => refreshVerificationStatus(verification.didit_session_id!)}
-                            disabled={isRefreshing}
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {getStatusBadge(verification.status)}
+                              {verification.status === 'pending' && verification.didit_session_id && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => refreshVerificationStatus(verification.didit_session_id!)}
+                                  disabled={isRefreshing}
+                                >
+                                  <RefreshCw className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
