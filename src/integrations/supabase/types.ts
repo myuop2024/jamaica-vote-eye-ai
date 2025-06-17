@@ -717,6 +717,7 @@ export type Database = {
           bank_name: string | null
           bank_routing_number: string | null
           created_at: string
+          deployment_parish: string | null
           didit_confidence_score: number | null
           didit_verification_date: string | null
           didit_verification_status:
@@ -743,6 +744,7 @@ export type Database = {
           bank_name?: string | null
           bank_routing_number?: string | null
           created_at?: string
+          deployment_parish?: string | null
           didit_confidence_score?: number | null
           didit_verification_date?: string | null
           didit_verification_status?:
@@ -769,6 +771,7 @@ export type Database = {
           bank_name?: string | null
           bank_routing_number?: string | null
           created_at?: string
+          deployment_parish?: string | null
           didit_confidence_score?: number | null
           didit_verification_date?: string | null
           didit_verification_status?:

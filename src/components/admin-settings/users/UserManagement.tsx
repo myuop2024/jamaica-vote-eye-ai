@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ export const UserManagement = () => {
           profile_image,
           phone_number,
           assigned_station,
+          deployment_parish,
           parish,
           address,
           bank_name,
@@ -63,7 +65,7 @@ export const UserManagement = () => {
         profileImage: profile.profile_image,
         phoneNumber: profile.phone_number,
         assignedStation: profile.assigned_station,
-        deploymentParish: undefined, // Will be added once column exists
+        deploymentParish: profile.deployment_parish,
         parish: profile.parish,
         address: profile.address,
         bankName: profile.bank_name,
