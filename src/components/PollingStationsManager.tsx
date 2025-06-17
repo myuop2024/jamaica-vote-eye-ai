@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { MapPin, Plus, Edit, Trash2 } from 'lucide-react';
+import { AddressInput } from '@/components/address/AddressInput';
 
 interface PollingStation {
   id: string;
@@ -172,11 +173,10 @@ export const PollingStationsManager: React.FC = () => {
               </div>
             </div>
             <div>
-              <Label htmlFor="address">Address</Label>
-              <Input
-                id="address"
+              <AddressInput
+                label="Address"
                 value={newStation.address}
-                onChange={(e) => setNewStation({ ...newStation, address: e.target.value })}
+                onChange={(address) => setNewStation({ ...newStation, address })}
                 placeholder="Full address of the polling station"
               />
             </div>

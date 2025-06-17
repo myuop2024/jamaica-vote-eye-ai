@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { DashboardOverview } from '@/components/admin-dashboard/DashboardOverview';
 import { ManagementNavigation } from '@/components/admin-dashboard/ManagementNavigation';
-import { UserManagement } from '@/components/admin-settings/users/UserManagement';
+import { UserManagement } from '@/components/UserManagement';
 import { CommunicationsManager } from '@/components/CommunicationsManager';
 import { VerificationCenter } from '@/components/VerificationCenter';
 import { ReportsManager } from '@/components/ReportsManager';
