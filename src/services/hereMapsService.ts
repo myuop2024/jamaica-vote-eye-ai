@@ -397,4 +397,8 @@ export const getHereMapsService = (): HereMapsService => {
   return hereMapsService;
 };
 
+export const isHereMapsServiceInitialized = (): boolean => {
+  return hereMapsService !== null;
+};
+
 export default HereMapsService;

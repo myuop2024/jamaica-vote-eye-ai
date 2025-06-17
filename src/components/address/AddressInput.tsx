@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, MapPin, X } from 'lucide-react';
-import { getHereMapsService, PlaceSearchResult } from '@/services/hereMapsService';
+import { getHereMapsService, isHereMapsServiceInitialized, PlaceSearchResult } from '@/services/hereMapsService';
 import { cn } from '@/lib/utils';
 
 interface AddressInputProps {
@@ -68,6 +68,14 @@ export const AddressInput: React.FC<AddressInputProps> = ({
       return;
     }
 
+    // Check if HERE Maps service is initialized
+    if (!isHereMapsServiceInitialized()) {
+      console.warn('HERE Maps service not initialized. Address suggestions disabled.');
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const hereMapsService = getHereMapsService();
@@ -82,13 +90,6 @@ export const AddressInput: React.FC<AddressInputProps> = ({
       setShowSuggestions(jamaicanResults.length > 0);
     } catch (error) {
       console.error('Error fetching address suggestions:', error);
-      
-      // Check if it's a service initialization error
-      if (error instanceof Error && error.message.includes('not initialized')) {
-        console.warn('HERE Maps service not initialized. Address suggestions disabled.');
-        // Still allow manual address entry
-      }
-      
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -117,28 +118,26 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   };
 
   const handleSuggestionSelect = (suggestion: PlaceSearchResult) => {
-    try {
-      const hereMapsService = getHereMapsService();
-      const formattedAddress = hereMapsService.formatAddress(suggestion.address);
-      
-      setInputValue(formattedAddress);
-      setSelectedCoordinates(suggestion.position);
-      setShowSuggestions(false);
-      
-      onChange?.(formattedAddress, suggestion.position);
-      onAddressSelect?.(suggestion);
-    } catch (error) {
-      console.error('Error formatting address:', error);
-      
-      // Fallback to basic formatting if service unavailable
-      const basicAddress = suggestion.address.label || suggestion.title;
-      setInputValue(basicAddress);
-      setSelectedCoordinates(suggestion.position);
-      setShowSuggestions(false);
-      
-      onChange?.(basicAddress, suggestion.position);
-      onAddressSelect?.(suggestion);
+    let formattedAddress;
+    
+    if (isHereMapsServiceInitialized()) {
+      try {
+        const hereMapsService = getHereMapsService();
+        formattedAddress = hereMapsService.formatAddress(suggestion.address);
+      } catch (error) {
+        console.error('Error formatting address:', error);
+        formattedAddress = suggestion.address.label || suggestion.title;
+      }
+    } else {
+      formattedAddress = suggestion.address.label || suggestion.title;
     }
+    
+    setInputValue(formattedAddress);
+    setSelectedCoordinates(suggestion.position);
+    setShowSuggestions(false);
+    
+    onChange?.(formattedAddress, suggestion.position);
+    onAddressSelect?.(suggestion);
   };
 
   const clearInput = () => {
@@ -153,6 +152,11 @@ export const AddressInput: React.FC<AddressInputProps> = ({
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    if (!isHereMapsServiceInitialized()) {
+      alert('Address lookup service not available. Please enter address manually.');
       return;
     }
 
@@ -182,12 +186,7 @@ export const AddressInput: React.FC<AddressInputProps> = ({
           }
         } catch (error) {
           console.error('Error reverse geocoding location:', error);
-          
-          if (error instanceof Error && error.message.includes('not initialized')) {
-            alert('Address lookup service not available. Please enter address manually.');
-          } else {
-            alert('Could not get address for your location.');
-          }
+          alert('Could not get address for your location.');
         } finally {
           setIsLoading(false);
         }
@@ -279,8 +278,18 @@ export const AddressInput: React.FC<AddressInputProps> = ({
         >
           <CardContent className="p-0">
             {suggestions.map((suggestion, index) => {
-              const hereMapsService = getHereMapsService();
-              const formattedAddress = hereMapsService.formatAddress(suggestion.address);
+              let formattedAddress;
+              if (isHereMapsServiceInitialized()) {
+                try {
+                  const hereMapsService = getHereMapsService();
+                  formattedAddress = hereMapsService.formatAddress(suggestion.address);
+                } catch (error) {
+                  // Fallback to basic formatting if service unavailable
+                  formattedAddress = suggestion.address.label || suggestion.title;
+                }
+              } else {
+                formattedAddress = suggestion.address.label || suggestion.title;
+              }
               
               return (
                 <button
