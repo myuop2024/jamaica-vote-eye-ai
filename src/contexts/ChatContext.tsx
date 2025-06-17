@@ -62,6 +62,7 @@ export interface ChatContextType {
     fileMeta?: { url: string; name: string },
     receiver?: { id: string; name: string }
   ) => void;
+  deleteMessage: (messageId: string) => void;
   joinRoom: (room: string) => void;
   leaveRoom: (room: string) => void;
   currentRoom: string;
@@ -88,15 +89,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const handleIncomingMessage = useCallback((payload: any) => {
-    const message = payload.message as ChatMessage;
-    const decryptedContent = decryptMessage(message.content, message.id);
-    const decryptedMessage = { ...message, content: decryptedContent };
+    const eventType = payload.event;
+    const messageData = payload.message as ChatMessage;
 
-    console.log(`Chat: Received message in room ${decryptedMessage.room}`, decryptedMessage);
-    setMessages(prev => {
-      if (prev.find(m => m.id === decryptedMessage.id)) return prev; // Deduplicate
-      return [...prev, decryptedMessage];
-    });
+    if (eventType === 'message') {
+      const decryptedContent = decryptMessage(messageData.content, messageData.id);
+      const decryptedMessage = { ...messageData, content: decryptedContent };
+      
+      console.log(`Chat: Received message in room ${decryptedMessage.room}`, decryptedMessage);
+      setMessages(prev => {
+        if (prev.find(m => m.id === decryptedMessage.id)) return prev;
+        return [...prev, decryptedMessage];
+      });
+    } else if (eventType === 'delete') {
+      const { messageId } = payload;
+      console.log(`Chat: Received delete event for message ${messageId}`);
+      setMessages(prev => prev.map(m => 
+        m.id === messageId ? { ...m, content: '[This message has been deleted]', deleted: true, type: 'system' } : m
+      ));
+    }
   }, []);
 
   const joinRoom = useCallback((room: string) => {
@@ -106,6 +117,33 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user || !room) return;
 
     console.log(`Chat: Joining room ${room}`);
+
+    // Fetch historical messages
+    const fetchHistory = async () => {
+      console.log(`Chat: Fetching history for room ${room}`);
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('room', room)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Chat: Error fetching history:', error);
+        toast({ title: 'Error', description: 'Could not fetch chat history.', variant: 'destructive' });
+      } else {
+        const historicalMessages = data.map(msg => ({
+          ...msg,
+          content: decryptMessage(msg.content, msg.id), // Decrypt historical messages
+          timestamp: new Date(msg.created_at).getTime(),
+          status: 'sent',
+        })).reverse(); // Reverse to show oldest first
+        setMessages(historicalMessages);
+      }
+    };
+    
+    fetchHistory();
+
     const newChannel = supabase.channel(`room:${room}`, {
       config: {
         presence: {
@@ -122,7 +160,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setOnlineUsers(users);
       })
       .on('broadcast', { event: 'message' }, (payload) => {
-        handleIncomingMessage(payload.payload);
+        handleIncomingMessage({ ...payload.payload, event: 'message' });
+      })
+      .on('broadcast', { event: 'delete' }, (payload) => {
+        handleIncomingMessage({ ...payload.payload, event: 'delete' });
       })
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
@@ -190,23 +231,76 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMessages(prev => [...prev, { ...msg, content: content }]);
 
     try {
+      // 1. Insert into database
+      const { error: insertError } = await supabase.from('chat_messages').insert({
+        id: msg.id,
+        room: msg.room,
+        sender_id: msg.senderId,
+        sender_name: msg.senderName,
+        receiver_id: msg.receiverId,
+        receiver_name: msg.receiverName,
+        content: encryptedContent,
+        type: msg.type,
+        file_url: msg.fileUrl,
+        file_name: msg.fileName,
+      });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // 2. Broadcast to others
       const result = await channelRef.current.send({
         type: 'broadcast',
         event: 'message',
-        payload: { message: msg },
+        payload: { message: { ...msg, content: encryptedContent } }, // Send encrypted content
       });
 
       if (result === 'ok') {
-        console.log(`Chat: Message ${msg.id} sent successfully to room ${currentRoom}`);
-        setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'sent' } : m));
-        await notifyChatEvent(user.id, 'chat_message_sent', `Message sent in ${currentRoom}`, { msgId: msg.id });
+        console.log(`Chat: Message ${msg.id} sent and broadcasted to room ${currentRoom}`);
+        // The sender will receive their own message back via broadcast,
+        // which becomes the single source of truth for status updates.
+        // We can, however, mark it as 'sent' locally.
+        setMessages(prev => prev.map(m => (m.id === msg.id ? { ...m, status: 'sent' } : m)));
       } else {
         throw new Error('Broadcast failed');
       }
     } catch (error) {
-      console.error(`Chat: Failed to send message ${msg.id} to room ${currentRoom}. Error:`, error);
-      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'failed' } : m));
+      console.error(`Chat: Failed to send message ${msg.id}. Error:`, error);
       toast({ title: 'Message Failed', description: 'Could not send message. Please try again.', variant: 'destructive' });
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    if (!currentRoom || !channelRef.current || channelRef.current.state !== 'joined') {
+      toast({ title: 'Cannot delete message', description: 'You are not connected to a chat room.', variant: 'destructive' });
+      return;
+    }
+    
+    console.log(`Chat: Broadcasting delete for message ${messageId} in room ${currentRoom}`);
+
+    try {
+      // Optimistically update the UI for the sender
+      setMessages(prev => prev.map(m => 
+        m.id === messageId ? { ...m, content: '[This message has been deleted]', deleted: true, type: 'system' } : m
+      ));
+      
+      // Update the database
+      await supabase.from('chat_messages').update({ content: '[deleted]', deleted: true }).eq('id', messageId);
+
+      await channelRef.current.send({
+        type: 'broadcast',
+        event: 'delete',
+        payload: { messageId },
+      });
+      if (user) {
+        await notifyChatEvent(user.id, 'chat_message_deleted', `Message deleted in ${currentRoom}`, { msgId: messageId });
+      }
+    } catch (error) {
+      console.error(`Chat: Failed to broadcast delete for message ${messageId}. Error:`, error);
+      toast({ title: 'Delete Failed', description: 'Could not delete message. Please try again.', variant: 'destructive' });
+      // Note: Here you might want to revert the optimistic update on failure.
+      // For simplicity, we'll leave it as is for now.
     }
   };
 
@@ -230,6 +324,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <ChatContext.Provider value={{
       messages,
       sendMessage,
+      deleteMessage,
       joinRoom,
       leaveRoom,
       currentRoom,

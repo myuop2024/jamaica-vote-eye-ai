@@ -16,6 +16,7 @@ export const ChatWindow: React.FC = () => {
   const {
     messages,
     sendMessage,
+    deleteMessage,
     joinRoom,
     leaveRoom,
     currentRoom,
@@ -103,15 +104,13 @@ export const ChatWindow: React.FC = () => {
   };
 
   const handleDelete = (msgId: string) => {
-    // Note: deleteMessage is not in the context anymore.
-    // This would need to be re-implemented in ChatContext.
-    console.warn("Delete functionality is not implemented in the new ChatContext yet.");
+    deleteMessage(msgId);
   };
 
   const canEditOrDelete = (msg: ChatMessage) => {
     if (!user) return false;
     // Simplified: only sender can "edit" (which is currently disabled)
-    return msg.senderId === user.id;
+    return msg.senderId === user.id && !msg.deleted;
   };
 
   const isOnline = connectionStatus === 'SUBSCRIBED';
@@ -168,7 +167,7 @@ export const ChatWindow: React.FC = () => {
                     {msg.type === 'file' ? (
                       <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="underline text-blue-600">{msg.fileName}</a>
                     ) : (
-                      <span className="break-words">{msg.content}</span>
+                      <span className="break-words italic">{msg.content}</span>
                     )}
                     {msg.content && msg.type === 'file' && <div className="text-sm italic text-gray-600">{msg.content}</div>}
                     {msg.edited && <span className="text-xs text-gray-400 ml-1">(edited)</span>}
