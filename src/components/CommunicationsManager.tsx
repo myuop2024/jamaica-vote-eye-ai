@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MessageSquare, Send, Users, Calendar, CheckCircle } from 'lucide-react';
+import { createNotification } from '@/services/notificationService';
 
 interface Communication {
   id: string;
@@ -82,6 +83,25 @@ export const CommunicationsManager: React.FC = () => {
         });
 
       if (error) throw error;
+
+      // Fetch target users for notification
+      let userQuery = supabase.from('profiles').select('id');
+      if (targetAudience === 'verified') {
+        userQuery = userQuery.eq('verification_status', 'verified');
+      } else if (targetAudience === 'pending') {
+        userQuery = userQuery.eq('verification_status', 'pending');
+      } // For 'all' and 'specific_stations', adjust as needed
+      const { data: users, error: userError } = await userQuery;
+      if (!userError && users) {
+        for (const u of users) {
+          await createNotification(
+            u.id,
+            'admin_message',
+            campaignName,
+            messageContent
+          );
+        }
+      }
 
       toast({
         title: "Success",

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -247,6 +246,49 @@ export const useCommunicationsSettings = () => {
     }
   };
 
+  const testSmtpEmail = async () => {
+    try {
+      toast({ title: 'Testing SMTP...', description: 'Sending test email...', variant: 'default' });
+      const resp = await fetch('/functions/v1/test-smtp-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}`
+        },
+      });
+      const result = await resp.json();
+      if (result.success) {
+        toast({ title: 'Success', description: 'Test email sent successfully!', variant: 'success' });
+      } else {
+        toast({ title: 'Error', description: result.error || 'Failed to send test email', variant: 'destructive' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to send test email', variant: 'destructive' });
+    }
+  };
+
+  const testSmtpCredentials = async (smtpHost: string, smtpPort: number, smtpUsername: string, smtpPassword: string, smtpTls: boolean) => {
+    try {
+      toast({ title: 'Testing SMTP Credentials...', description: 'Attempting to connect...', variant: 'default' });
+      const resp = await fetch('/functions/v1/test-smtp-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}`
+        },
+        body: JSON.stringify({ smtpHost, smtpPort, smtpUsername, smtpPassword, smtpTls })
+      });
+      const result = await resp.json();
+      if (result.success) {
+        toast({ title: 'Success', description: 'SMTP credentials are valid!', variant: 'success' });
+      } else {
+        toast({ title: 'Error', description: result.error || 'Failed to connect with these credentials', variant: 'destructive' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to test SMTP credentials', variant: 'destructive' });
+    }
+  };
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -257,6 +299,8 @@ export const useCommunicationsSettings = () => {
     isLoading,
     isSaving,
     saveSettings,
+    testSmtpEmail,
+    testSmtpCredentials,
     loadSettings
   };
 };

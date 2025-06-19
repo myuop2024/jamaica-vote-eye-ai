@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -16,7 +15,9 @@ export const CommunicationsSettings: React.FC = () => {
     updateSetting,
     isLoading,
     isSaving,
-    saveSettings
+    saveSettings,
+    testSmtpEmail,
+    testSmtpCredentials
   } = useCommunicationsSettings();
 
   if (isLoading) {
@@ -136,6 +137,23 @@ export const CommunicationsSettings: React.FC = () => {
               onCheckedChange={(checked) => updateSetting('smtpTls', checked)}
             />
           </div>
+
+          {settings.emailProvider === 'smtp' && (
+            <div className="flex flex-col md:flex-row justify-end gap-2 mt-4">
+              <Button type="button" variant="outline" onClick={() => testSmtpCredentials(
+                settings.smtpHost,
+                settings.smtpPort,
+                settings.smtpUsername,
+                settings.smtpPassword,
+                settings.smtpTls
+              )}>
+                Test SMTP Credentials
+              </Button>
+              <Button type="button" variant="outline" onClick={testSmtpEmail}>
+                Send Test Email
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

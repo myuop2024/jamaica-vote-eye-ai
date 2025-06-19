@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 
 // Simplified notification service that logs to console
 // This can be enhanced later when the notifications table is properly set up
@@ -9,18 +10,34 @@ export async function createNotification(
   message: string,
   data?: Record<string, unknown>
 ) {
-  console.log('Notification created:', { userId, type, title, message, data });
-  return { data: null, error: null };
+  const { data: notif, error } = await supabase
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type,
+      title,
+      message,
+      data,
+      read: false
+    });
+  return { data: notif, error };
 }
 
 export async function getUserNotifications(userId: string) {
-  console.log('Getting notifications for user:', userId);
-  return [];
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  return { data, error };
 }
 
 export async function markNotificationRead(id: number) {
-  console.log('Marking notification as read:', id);
-  return { data: null, error: null };
+  const { data, error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('id', id);
+  return { data, error };
 }
 
 export async function notifyChatEvent(
