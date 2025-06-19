@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MessageSquare, Send, Users, Calendar, CheckCircle } from 'lucide-react';
 import { createNotification } from '@/services/notificationService';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Communication {
   id: string;
@@ -39,6 +40,12 @@ export const CommunicationsManager: React.FC = () => {
   const [messageContent, setMessageContent] = useState('');
   const [communicationType, setCommunicationType] = useState<'sms' | 'whatsapp' | 'email'>('sms');
   const [targetAudience, setTargetAudience] = useState('all');
+
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
+  const [notifAudience, setNotifAudience] = useState('all');
+  const [notifSending, setNotifSending] = useState(false);
 
   useEffect(() => {
     fetchCommunications();
@@ -146,6 +153,38 @@ export const CommunicationsManager: React.FC = () => {
     return variants[type as keyof typeof variants] || 'bg-gray-100 text-gray-800';
   };
 
+  const handleSendSiteNotification = async () => {
+    setNotifSending(true);
+    try {
+      let userQuery = supabase.from('profiles').select('id');
+      if (notifAudience === 'verified') {
+        userQuery = userQuery.eq('verification_status', 'verified');
+      } else if (notifAudience === 'pending') {
+        userQuery = userQuery.eq('verification_status', 'pending');
+      }
+      const { data: users, error: userError } = await userQuery;
+      if (!userError && users) {
+        for (const u of users) {
+          await createNotification(
+            u.id,
+            'site_notice',
+            notifTitle,
+            notifMessage
+          );
+        }
+      }
+      toast({ title: 'Notification Sent', description: 'Site notification sent to users.' });
+      setShowNotifModal(false);
+      setNotifTitle('');
+      setNotifMessage('');
+      setNotifAudience('all');
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to send notification', variant: 'destructive' });
+    } finally {
+      setNotifSending(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -156,6 +195,48 @@ export const CommunicationsManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" onClick={() => setShowNotifModal(true)}>
+          Send Site Notification
+        </Button>
+      </div>
+      <Dialog open={showNotifModal} onOpenChange={setShowNotifModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Site Notification</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Notification Title"
+              value={notifTitle}
+              onChange={e => setNotifTitle(e.target.value)}
+            />
+            <Textarea
+              placeholder="Notification Message"
+              value={notifMessage}
+              onChange={e => setNotifMessage(e.target.value)}
+              rows={4}
+            />
+            <Select value={notifAudience} onValueChange={setNotifAudience}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Audience" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="verified">Verified Users</SelectItem>
+                <SelectItem value="pending">Pending Users</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowNotifModal(false)} disabled={notifSending}>Cancel</Button>
+              <Button onClick={handleSendSiteNotification} disabled={notifSending || !notifTitle || !notifMessage}>
+                {notifSending ? 'Sending...' : 'Send Notification'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Create Communication */}
       <Card>
         <CardHeader>
