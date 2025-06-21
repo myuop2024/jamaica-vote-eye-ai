@@ -6,31 +6,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CalendarIcon } from 'lucide-react'; // Added CalendarIcon
+import { Loader2, CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AddressInput } from '@/components/address/AddressInput';
 import { JAMAICAN_PARISHES } from '@/services/hereMapsService';
-import { User } from '@/types/auth'; // Using the global User type
+import { User } from '@/types/auth';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { formatDateToDisplay, formatDateToISO, parseDisplayDateToDateObject } from '@/lib/utils';
 import { format as formatDateFns } from 'date-fns';
 
-
 interface UserEditDialogProps {
-  user: User | null; // Changed to global User type
+  user: User | null;
   isOpen: boolean;
   onClose: () => void;
-  onUserUpdated: (updatedUser: User) => void; // Changed prop name and signature
+  onUserUpdated: (updatedUser: User) => void;
 }
 
 export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   user,
   isOpen,
   onClose,
-  onUserUpdated // Changed prop name
+  onUserUpdated
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,11 +51,10 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined);
   const [uniqueUserIdDisplay, setUniqueUserIdDisplay] = useState('');
 
-
   useEffect(() => {
     if (user) {
       setName(user.name || '');
-      setPhoneNumber(user.phone_number || '');
+      setPhoneNumber(user.phoneNumber || '');
       setRole(user.role || 'observer');
       setAssignedStation(user.assignedStation || '');
       setDeploymentParish(user.deploymentParish || '');
@@ -92,20 +90,17 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
       setDateOfBirth(undefined);
       setUniqueUserIdDisplay('');
     }
-  }, [user, isOpen]); // Added isOpen to reset form when dialog reopens
+  }, [user, isOpen]);
 
   // Generic input handler for simple text inputs
   const createInputHandler = (setter: React.Dispatch<React.SetStateAction<string>>) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setter(e.target.value);
       if (error) setError(null);
-  };
+    };
 
   const handleSelectChange = (setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
     setter(value);
-    if (error) setError(null);
-  };
-
     if (error) setError(null);
   };
 
@@ -137,7 +132,6 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
     if (error) setError(null);
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -154,7 +148,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
     try {
       const updatePayload: Partial<User> = {
         name: name.trim(),
-        phone_number: phoneNumber.trim() || undefined, // Use undefined for optional fields if empty
+        phone_number: phoneNumber.trim() || undefined,
         role: role,
         assigned_station: assignedStation.trim() || undefined,
         deployment_parish: deploymentParish || undefined,
@@ -166,7 +160,6 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
         trn: trn.replace(/\s/g, '') || undefined,
         verification_status: verificationStatus,
         date_of_birth: dateOfBirth ? formatDateToISO(dateOfBirth) : undefined,
-        // unique_user_id is not updatable from here
       };
 
       const { data: updatedUserData, error: updateError } = await supabase
@@ -184,15 +177,12 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
       });
 
       if (updatedUserData) {
-        // Construct a User object that matches the type, including potentially unchanged fields
         const fullyUpdatedUser: User = {
-            ...user, // Spread existing user data
-            ...updatedUserData, // Override with updated fields from Supabase response
-             // Ensure all required User fields are present, falling back to existing user data if not in updatedUserData
+            ...user,
+            ...updatedUserData,
             id: user.id,
-            email: user.email, // email is not part of updatePayload
-            createdAt: user.createdAt, // createdAt is not part of updatePayload
-            // map other potentially missing fields from user if not in updatedUserData
+            email: user.email,
+            createdAt: user.createdAt,
         };
         onUserUpdated(fullyUpdatedUser);
       }
@@ -378,7 +368,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
             <AddressInput
               label="Address"
               value={address}
-              onChange={handleAddressDataChange} // Use the new handler
+              onChange={handleAddressDataChange}
               onAddressSelect={handleAddressSelect}
               disabled={isLoading}
               placeholder="Enter full address in Jamaica"
