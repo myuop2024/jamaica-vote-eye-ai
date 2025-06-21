@@ -1,76 +1,62 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { Notification } from '@/types/notifications';
 
-// Simplified notification service that logs to console
-// This can be enhanced later when the notifications table is properly set up
-
-export async function createNotification(
-  userId: string,
-  type: string,
-  title: string,
-  message: string,
-  data?: Record<string, unknown>
-) {
-  const { data: notif, error } = await supabase
+export const createNotification = async (notification: {
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  data?: any;
+}) => {
+  const { data, error } = await supabase
     .from('notifications')
-    .insert({
-      user_id: userId,
-      type,
-      title,
-      message,
-      data,
-      read: false
-    });
-  
-  // Trigger real-time notification for immediate display
-  if (!error) {
-    // Broadcast to specific user channel
-    await supabase.channel(`user_${userId}`)
-      .send({
-        type: 'broadcast',
-        event: 'new_notification',
-        payload: {
-          id: notif?.[0]?.id,
-          type,
-          title,
-          message,
-          data,
-          created_at: new Date().toISOString()
-        }
-      });
-  }
-  
-  return { data: notif, error };
-}
+    .insert(notification)
+    .select()
+    .single();
 
-export async function getUserNotifications(userId: string) {
+  if (error) throw error;
+  return data;
+};
+
+export const getNotifications = async (userId: string): Promise<Notification[]> => {
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
-  return { data, error };
-}
 
-export async function markNotificationRead(id: number) {
+  if (error) throw error;
+  return data || [];
+};
+
+export const getUnreadNotifications = async (userId: string): Promise<Notification[]> => {
   const { data, error } = await supabase
     .from('notifications')
-    .update({ read: true })
-    .eq('id', id);
-  return { data, error };
-}
+    .select('*')
+    .eq('user_id', userId)
+    .eq('read', false)
+    .order('created_at', { ascending: false });
 
-export async function notifyChatEvent(
-  userId: string,
-  type: string,
-  message: string,
-  data?: Record<string, unknown>
-) {
-  return createNotification(
-    userId,
-    type,
-    'Chat Notification',
-    message,
-    data
-  );
-}
+  if (error) throw error;
+  return data || [];
+};
+
+export const markNotificationAsRead = async (notificationId: number) => {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('id', notificationId);
+
+  if (error) throw error;
+};
+
+export const markAllNotificationsAsRead = async (userId: string) => {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('user_id', userId)
+    .eq('read', false);
+
+  if (error) throw error;
+};
