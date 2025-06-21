@@ -17,6 +17,9 @@ export interface User {
   trn?: string;
   createdAt: string;
   lastLogin?: string;
+  // New fields
+  date_of_birth?: string; // Stored as YYYY-MM-DD string from Supabase
+  unique_user_id?: string;
 }
 
 export interface AuthContextType {
@@ -24,4 +27,5 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  refreshUserProfile: () => Promise<void>; // Added refresh function
 }

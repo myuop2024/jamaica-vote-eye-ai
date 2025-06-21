@@ -111,7 +111,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           bankRoutingNumber: profile.bank_routing_number,
           trn: profile.trn,
           createdAt: profile.created_at,
-          lastLogin: profile.last_login
+          lastLogin: profile.last_login,
+          // Add new fields
+          date_of_birth: profile.date_of_birth,
+          unique_user_id: profile.unique_user_id,
         };
         
         setUser(userProfile);
@@ -135,6 +138,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshUserProfile = async () => {
+    if (user?.id && user?.email) {
+      setIsLoading(true); // Optionally set loading state
+      console.log('AuthProvider: Refreshing user profile for', user.id);
+      await fetchUserProfile(user.id, user.email);
+      // setIsLoading(false); // Reset loading state after fetch
+    } else {
+      console.warn('AuthProvider: Cannot refresh profile, user or user details missing.');
+    }
+  };
+
   const login = async (email: string, password: string) => {
     console.log('AuthProvider: Starting login for', email);
     setIsLoading(true);
@@ -154,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user) {
         console.log('AuthProvider: Login successful');
+        // User profile will be fetched by onAuthStateChange listener
         toast({
           title: "Success",
           description: "Login successful"
@@ -176,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await supabase.auth.signOut();
       localStorage.removeItem('jwt');
-      setUser(null);
+      setUser(null); // Clear user state immediately
       toast({
         title: "Success",
         description: "Logged out successfully"
@@ -192,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, refreshUserProfile }}>
       {children}
     </AuthContext.Provider>
   );
