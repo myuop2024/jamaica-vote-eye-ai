@@ -6,111 +6,137 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CalendarIcon } from 'lucide-react'; // Added CalendarIcon
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AddressInput } from '@/components/address/AddressInput';
 import { JAMAICAN_PARISHES } from '@/services/hereMapsService';
+import { User } from '@/types/auth'; // Using the global User type
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { formatDateToDisplay, formatDateToISO, parseDisplayDateToDateObject } from '@/lib/utils';
+import { format as formatDateFns } from 'date-fns';
 
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  verification_status: 'pending' | 'verified' | 'rejected';
-  phone_number?: string;
-  assigned_station?: string;
-  parish?: string;
-  address?: string;
-  bank_name?: string;
-  bank_account_number?: string;
-  bank_routing_number?: string;
-  trn?: string;
-  created_at: string;
-  last_login?: string;
-  deployment_parish?: string;
-}
 
 interface UserEditDialogProps {
-  user: UserProfile | null;
+  user: User | null; // Changed to global User type
   isOpen: boolean;
   onClose: () => void;
-  onUpdateStatus: (userId: string, status: 'pending' | 'verified' | 'rejected') => void;
+  onUserUpdated: (updatedUser: User) => void; // Changed prop name and signature
 }
 
 export const UserEditDialog: React.FC<UserEditDialogProps> = ({
   user,
   isOpen,
   onClose,
-  onUpdateStatus
+  onUserUpdated // Changed prop name
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    phoneNumber: user?.phone_number || '',
-    role: user?.role || 'observer',
-    assignedStation: user?.assigned_station || '',
-    deploymentParish: user?.deployment_parish || '',
-    parish: user?.parish || '',
-    address: user?.address || '',
-    bankName: user?.bank_name || '',
-    bankAccountNumber: user?.bank_account_number || '',
-    bankRoutingNumber: user?.bank_routing_number || '',
-    trn: user?.trn || '',
-    verificationStatus: user?.verification_status || 'pending' as 'pending' | 'verified' | 'rejected',
-  });
+  // Separate state for form fields for clarity
+  const [name, setName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [role, setRole] = useState<'admin' | 'observer' | 'parish_coordinator' | 'roving_observer'>('observer');
+  const [assignedStation, setAssignedStation] = useState('');
+  const [deploymentParish, setDeploymentParish] = useState('');
+  const [parish, setParish] = useState('');
+  const [address, setAddress] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankRoutingNumber, setBankRoutingNumber] = useState('');
+  const [trn, setTrn] = useState('');
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected'>('pending');
+  const [dateOfBirth, setDateOfBirth] = useState<Date | undefined>(undefined);
+  const [uniqueUserIdDisplay, setUniqueUserIdDisplay] = useState('');
+
 
   useEffect(() => {
     if (user) {
-      setFormData({
-        name: user.name,
-        phoneNumber: user.phone_number || '',
-        role: user.role,
-        assignedStation: user.assigned_station || '',
-        deploymentParish: user.deployment_parish || '',
-        parish: user.parish || '',
-        address: user.address || '',
-        bankName: user.bank_name || '',
-        bankAccountNumber: user.bank_account_number || '',
-        bankRoutingNumber: user.bank_routing_number || '',
-        trn: user.trn || '',
-        verificationStatus: user.verification_status,
-      });
-    }
-  }, [user]);
+      setName(user.name || '');
+      setPhoneNumber(user.phone_number || '');
+      setRole(user.role || 'observer');
+      setAssignedStation(user.assignedStation || '');
+      setDeploymentParish(user.deploymentParish || '');
+      setParish(user.parish || '');
+      setAddress(user.address || '');
+      setBankName(user.bankName || '');
+      setBankAccountNumber(user.bankAccountNumber || '');
+      setBankRoutingNumber(user.bankRoutingNumber || '');
+      setTrn(user.trn || '');
+      setVerificationStatus(user.verificationStatus || 'pending');
+      setUniqueUserIdDisplay(user.unique_user_id || 'N/A');
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+      if (user.date_of_birth) {
+        const dobDate = parseDisplayDateToDateObject(formatDateToDisplay(user.date_of_birth));
+        setDateOfBirth(dobDate || undefined);
+      } else {
+        setDateOfBirth(undefined);
+      }
+    } else {
+      // Reset form if user is null (e.g. dialog closed and reopened without a user)
+      setName('');
+      setPhoneNumber('');
+      setRole('observer');
+      setAssignedStation('');
+      setDeploymentParish('');
+      setParish('');
+      setAddress('');
+      setBankName('');
+      setBankAccountNumber('');
+      setBankRoutingNumber('');
+      setTrn('');
+      setVerificationStatus('pending');
+      setDateOfBirth(undefined);
+      setUniqueUserIdDisplay('');
+    }
+  }, [user, isOpen]); // Added isOpen to reset form when dialog reopens
+
+  // Generic input handler for simple text inputs
+  const createInputHandler = (setter: React.Dispatch<React.SetStateAction<string>>) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setter(e.target.value);
+      if (error) setError(null);
+  };
+
+  const handleSelectChange = (setter: React.Dispatch<React.SetStateAction<any>>, value: any) => {
+    setter(value);
+    if (error) setError(null);
+  };
+
     if (error) setError(null);
   };
 
   const validateForm = () => {
+    if (!name.trim()) return 'Full Name is required.';
+    if (dateOfBirth && dateOfBirth > new Date()) return 'Date of Birth cannot be in the future.';
     // Validate TRN format if provided (should be 9 digits)
-    if (formData.trn && !/^\d{9}$/.test(formData.trn.replace(/\s/g, ''))) {
-      return 'TRN must be 9 digits';
+    if (trn && !/^\d{9}$/.test(trn.replace(/\s/g, ''))) {
+      return 'TRN must be 9 digits.';
     }
     return null;
   };
 
-  const handleAddressChange = (address: string, coordinates?: { lat: number; lng: number }) => {
-    setFormData(prev => ({ ...prev, address }));
+  const handleAddressDataChange = (newAddress: string, newParish?: string) => {
+    setAddress(newAddress);
+    if (newParish && JAMAICAN_PARISHES.includes(newParish)) {
+      setParish(newParish);
+    }
     if (error) setError(null);
   };
 
   const handleAddressSelect = (addressData: any) => {
-    if (addressData.address?.state && JAMAICAN_PARISHES.includes(addressData.address.state)) {
-      setFormData((prev) => ({
-        ...prev,
-        address: addressData.address.label,
-        parish: addressData.address.state
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, address: addressData.address.label }));
+    const newAddress = addressData.address.label;
+    const newParish = addressData.address.state;
+    setAddress(newAddress);
+    if (newParish && JAMAICAN_PARISHES.includes(newParish)) {
+        setParish(newParish);
     }
+    if (error) setError(null);
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,23 +152,29 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
     setError(null);
 
     try {
-      const { error: updateError } = await supabase
+      const updatePayload: Partial<User> = {
+        name: name.trim(),
+        phone_number: phoneNumber.trim() || undefined, // Use undefined for optional fields if empty
+        role: role,
+        assigned_station: assignedStation.trim() || undefined,
+        deployment_parish: deploymentParish || undefined,
+        parish: parish || undefined,
+        address: address.trim() || undefined,
+        bank_name: bankName.trim() || undefined,
+        bank_account_number: bankAccountNumber.trim() || undefined,
+        bank_routing_number: bankRoutingNumber.trim() || undefined,
+        trn: trn.replace(/\s/g, '') || undefined,
+        verification_status: verificationStatus,
+        date_of_birth: dateOfBirth ? formatDateToISO(dateOfBirth) : undefined,
+        // unique_user_id is not updatable from here
+      };
+
+      const { data: updatedUserData, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          name: formData.name.trim(),
-          phone_number: formData.phoneNumber.trim() || null,
-          role: formData.role,
-          assigned_station: formData.assignedStation.trim() || null,
-          deployment_parish: formData.deploymentParish || null,
-          parish: formData.parish || null,
-          address: formData.address.trim() || null,
-          bank_name: formData.bankName.trim() || null,
-          bank_account_number: formData.bankAccountNumber.trim() || null,
-                      bank_routing_number: formData.bankRoutingNumber.trim() || null,
-            trn: formData.trn.replace(/\s/g, '') || null,
-            verification_status: formData.verificationStatus,
-          })
-        .eq('id', user.id);
+        .update(updatePayload)
+        .eq('id', user.id)
+        .select()
+        .single();
 
       if (updateError) throw updateError;
 
@@ -151,12 +183,24 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
         description: 'User profile updated successfully.',
       });
 
-      onUpdateStatus(user.id, formData.verificationStatus);
+      if (updatedUserData) {
+        // Construct a User object that matches the type, including potentially unchanged fields
+        const fullyUpdatedUser: User = {
+            ...user, // Spread existing user data
+            ...updatedUserData, // Override with updated fields from Supabase response
+             // Ensure all required User fields are present, falling back to existing user data if not in updatedUserData
+            id: user.id,
+            email: user.email, // email is not part of updatePayload
+            createdAt: user.createdAt, // createdAt is not part of updatePayload
+            // map other potentially missing fields from user if not in updatedUserData
+        };
+        onUserUpdated(fullyUpdatedUser);
+      }
       onClose();
 
     } catch (error: any) {
       console.error('Error updating user:', error);
-      setError(error.message || 'Failed to update user');
+      setError(error.message || 'Failed to update user.');
     } finally {
       setIsLoading(false);
     }
@@ -183,11 +227,102 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
             <h3 className="text-lg font-semibold">Basic Information</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={createInputHandler(setName)}
+                  disabled={isLoading}
+                  placeholder="Enter full name"
+                  required
+                />
+              </div>
               <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={user?.email || ''}
+                  readOnly
+                  className="bg-gray-100 cursor-not-allowed"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="uniqueUserId">Unique User ID</Label>
+                <Input
+                  id="uniqueUserId"
+                  type="text"
+                  value={uniqueUserIdDisplay}
+                  readOnly
+                  className="bg-gray-100 cursor-not-allowed"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dateOfBirth && "text-muted-foreground"
+                      )}
+                      disabled={isLoading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateOfBirth ? formatDateFns(dateOfBirth, "dd/MM/yyyy") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={dateOfBirth}
+                      onSelect={setDateOfBirth}
+                      initialFocus
+                      captionLayout="dropdown-buttons"
+                      fromYear={1920}
+                      toYear={new Date().getFullYear()}
+                      disabled={(date) => date > new Date() || date < new Date("1900-01-01") || isLoading}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone_number">Phone Number</Label>
+                <Input
+                  id="phone_number"
+                  value={phoneNumber}
+                  onChange={createInputHandler(setPhoneNumber)}
+                  disabled={isLoading}
+                  placeholder="+1 876-XXX-XXXX"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                 <Select
+                    value={role}
+                    onValueChange={(value: User['role']) => handleSelectChange(setRole, value)}
+                    disabled={isLoading}
+                  >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="observer">Observer</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="parish_coordinator">Parish Coordinator</SelectItem>
+                    <SelectItem value="roving_observer">Roving Observer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+               <div className="space-y-2">
                 <Label>Verification Status</Label>
                 <Select
-                  value={formData.verificationStatus}
-                  onValueChange={(value) => handleInputChange('verificationStatus', value)}
+                  value={verificationStatus}
+                  onValueChange={(value: 'pending' | 'verified' | 'rejected') => handleSelectChange(setVerificationStatus, value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
@@ -200,17 +335,6 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone_number">Phone Number</Label>
-                <Input
-                  id="phone_number"
-                  value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  disabled={isLoading}
-                  placeholder="+1 876-XXX-XXXX"
-                />
-              </div>
             </div>
           </div>
 
@@ -222,17 +346,17 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
               <div className="space-y-2">
                 <Label htmlFor="deployment-parish">Deployment Parish</Label>
                 <Select
-                  value={formData.deploymentParish}
-                  onValueChange={(value) => handleInputChange('deploymentParish', value)}
+                  value={deploymentParish}
+                  onValueChange={(value) => handleSelectChange(setDeploymentParish, value)}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select deployment parish" />
                   </SelectTrigger>
                   <SelectContent>
-                    {JAMAICAN_PARISHES.map((parish) => (
-                      <SelectItem key={parish} value={parish}>
-                        {parish}
+                    {JAMAICAN_PARISHES.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -243,8 +367,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="assigned_station">Assigned Station</Label>
                 <Input
                   id="assigned_station"
-                  value={formData.assignedStation}
-                  onChange={(e) => handleInputChange('assignedStation', e.target.value)}
+                  value={assignedStation}
+                  onChange={createInputHandler(setAssignedStation)}
                   disabled={isLoading}
                   placeholder="Station name or code"
                 />
@@ -253,8 +377,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
 
             <AddressInput
               label="Address"
-              value={formData.address}
-              onChange={handleAddressChange}
+              value={address}
+              onChange={handleAddressDataChange} // Use the new handler
               onAddressSelect={handleAddressSelect}
               disabled={isLoading}
               placeholder="Enter full address in Jamaica"
@@ -271,8 +395,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="bank_name">Bank Name</Label>
                 <Input
                   id="bank_name"
-                  value={formData.bankName}
-                  onChange={(e) => handleInputChange('bankName', e.target.value)}
+                  value={bankName}
+                  onChange={createInputHandler(setBankName)}
                   disabled={isLoading}
                   placeholder="Bank name"
                 />
@@ -282,8 +406,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="bank_account_number">Account Number</Label>
                 <Input
                   id="bank_account_number"
-                  value={formData.bankAccountNumber}
-                  onChange={(e) => handleInputChange('bankAccountNumber', e.target.value)}
+                  value={bankAccountNumber}
+                  onChange={createInputHandler(setBankAccountNumber)}
                   disabled={isLoading}
                   placeholder="Account number"
                 />
@@ -293,8 +417,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="bank_routing_number">Routing Number</Label>
                 <Input
                   id="bank_routing_number"
-                  value={formData.bankRoutingNumber}
-                  onChange={(e) => handleInputChange('bankRoutingNumber', e.target.value)}
+                  value={bankRoutingNumber}
+                  onChange={createInputHandler(setBankRoutingNumber)}
                   disabled={isLoading}
                   placeholder="Routing number"
                 />
@@ -304,8 +428,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
                 <Label htmlFor="trn">TRN (Tax Registration Number)</Label>
                 <Input
                   id="trn"
-                  value={formData.trn}
-                  onChange={(e) => handleInputChange('trn', e.target.value)}
+                  value={trn}
+                  onChange={createInputHandler(setTrn)}
                   disabled={isLoading}
                   placeholder="9-digit TRN"
                   maxLength={9}
