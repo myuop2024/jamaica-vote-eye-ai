@@ -709,6 +709,54 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_field_templates: {
+        Row: {
+          admin_only: boolean | null
+          created_at: string
+          default_value: string | null
+          field_key: string
+          id: number
+          label: string
+          options: Json | null
+          order: number | null
+          required: boolean | null
+          type: string
+          updated_at: string
+          validation: string | null
+          visible_to_user: boolean | null
+        }
+        Insert: {
+          admin_only?: boolean | null
+          created_at?: string
+          default_value?: string | null
+          field_key: string
+          id?: number
+          label: string
+          options?: Json | null
+          order?: number | null
+          required?: boolean | null
+          type: string
+          updated_at?: string
+          validation?: string | null
+          visible_to_user?: boolean | null
+        }
+        Update: {
+          admin_only?: boolean | null
+          created_at?: string
+          default_value?: string | null
+          field_key?: string
+          id?: number
+          label?: string
+          options?: Json | null
+          order?: number | null
+          required?: boolean | null
+          type?: string
+          updated_at?: string
+          validation?: string | null
+          visible_to_user?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -730,9 +778,11 @@ export type Database = {
           name: string
           parish: string | null
           phone_number: string | null
+          profile_data: Json | null
           profile_image: string | null
           role: string
           trn: string | null
+          updated_at: string
           verification_status:
             | Database["public"]["Enums"]["verification_status"]
             | null
@@ -757,9 +807,11 @@ export type Database = {
           name: string
           parish?: string | null
           phone_number?: string | null
+          profile_data?: Json | null
           profile_image?: string | null
           role: string
           trn?: string | null
+          updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
             | null
@@ -784,9 +836,11 @@ export type Database = {
           name?: string
           parish?: string | null
           phone_number?: string | null
+          profile_data?: Json | null
           profile_image?: string | null
           role?: string
           trn?: string | null
+          updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
             | null

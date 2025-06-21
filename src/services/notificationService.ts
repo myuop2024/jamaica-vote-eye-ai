@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 // Simplified notification service that logs to console
@@ -20,6 +21,25 @@ export async function createNotification(
       data,
       read: false
     });
+  
+  // Trigger real-time notification for immediate display
+  if (!error) {
+    // Broadcast to specific user channel
+    await supabase.channel(`user_${userId}`)
+      .send({
+        type: 'broadcast',
+        event: 'new_notification',
+        payload: {
+          id: notif?.[0]?.id,
+          type,
+          title,
+          message,
+          data,
+          created_at: new Date().toISOString()
+        }
+      });
+  }
+  
   return { data: notif, error };
 }
 
