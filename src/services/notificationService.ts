@@ -79,3 +79,27 @@ export const notifyChatEvent = async (
     console.error('Failed to create chat notification:', error);
   }
 };
+
+export const notifyAllUsers = async (notification: {
+  type: string;
+  title: string;
+  message: string;
+  data?: any;
+}) => {
+  const { data, error } = await supabase.functions.invoke('notify-all-users', {
+    body: notification,
+  });
+
+  if (error) {
+    console.error('Error calling notify-all-users function:', error);
+    throw error;
+  }
+
+  if (data && data.error) {
+    console.error('Error from notify-all-users function:', data.error);
+    throw new Error(data.error);
+  }
+
+  console.log('Notify all users function response:', data);
+  return data;
+};
