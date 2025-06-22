@@ -1,17 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { fetchUsers } from '@/components/user-management/UserOperations';
 import { User } from '@/types/auth';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface RawUser {
-  id: string;
-  email: string;
-  name: string;
-  role: User['role'];
-  verification_status: User['verificationStatus'];
-  created_at: string;
-  last_login?: string;
-}
 
 interface UserSearchProps {
   onSelect: (user: User) => void;
@@ -26,18 +17,8 @@ export const UserSearch: React.FC<UserSearchProps> = ({ onSelect }) => {
     const load = async () => {
       try {
         const data = await fetchUsers();
-        // Cast fetched data to User type
-        setUsers(
-          (data as RawUser[]).map((u) => ({
-            id: u.id,
-            email: u.email,
-            name: u.name,
-            role: u.role,
-            verificationStatus: u.verification_status,
-            createdAt: u.created_at,
-            lastLogin: u.last_login,
-          }))
-        );
+        // fetchUsers already returns properly mapped User[] data
+        setUsers(data);
       } catch (error) {
         console.error('Failed to load users for search', error);
       }

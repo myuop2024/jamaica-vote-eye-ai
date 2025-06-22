@@ -22,7 +22,4 @@ export interface ProfileFieldTemplate {
 
 export type ProfileData = Record<string, unknown>;
 
-// Add UserProfile interface that extends User
-export interface UserProfile extends User {
-  phone_number?: string; // Database field name
-}
+// Remove UserProfile interface since we're using User from auth.ts consistently
