@@ -112,9 +112,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           trn: profile.trn,
           createdAt: profile.created_at,
           lastLogin: profile.last_login,
-          // Add new fields
-          date_of_birth: profile.date_of_birth,
-          unique_user_id: profile.unique_user_id,
+          // Add new fields with null checks
+          date_of_birth: profile.date_of_birth || undefined,
+          unique_user_id: profile.unique_user_id || undefined,
         };
         
         setUser(userProfile);

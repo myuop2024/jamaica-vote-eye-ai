@@ -96,7 +96,10 @@ export const UserManagement: React.FC = () => {
         user={selectedUser}
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
-        onUpdateStatus={handleUpdateUserStatus}
+        onUserUpdated={(updatedUser: User) => {
+          // Handle the updated user
+          loadUsers();
+        }}
       />
 
       <UserDetailsDialog

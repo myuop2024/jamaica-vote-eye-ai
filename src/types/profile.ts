@@ -1,3 +1,4 @@
+
 export type ProfileFieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'file';
 
 export interface ProfileFieldTemplate {
@@ -18,3 +19,8 @@ export interface ProfileFieldTemplate {
 }
 
 export type ProfileData = Record<string, unknown>;
+
+// Add UserProfile interface that extends User
+export interface UserProfile extends User {
+  phone_number?: string; // Database field name
+}

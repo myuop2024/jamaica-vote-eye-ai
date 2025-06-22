@@ -50,7 +50,9 @@ export const UserManagement = () => {
           bank_routing_number,
           trn,
           created_at,
-          last_login
+          last_login,
+          date_of_birth,
+          unique_user_id
         `)
         .order('created_at', { ascending: false });
 
@@ -73,7 +75,9 @@ export const UserManagement = () => {
         bankRoutingNumber: profile.bank_routing_number,
         trn: profile.trn,
         createdAt: profile.created_at,
-        lastLogin: profile.last_login
+        lastLogin: profile.last_login,
+        date_of_birth: profile.date_of_birth,
+        unique_user_id: profile.unique_user_id
       }));
 
       setUsers(mappedUsers);
@@ -114,13 +118,13 @@ export const UserManagement = () => {
     setSaving(true);
     try {
       await supabase.from('profiles').update({ role: newRole }).eq('id', editUser.id);
-      await createNotification(
-        editUser.id,
-        'role_change',
-        'Your role has been updated',
-        `Your role is now ${ROLES.find(r => r.value === newRole)?.label || newRole}.`,
-        { newRole, changedBy: currentUser?.id }
-      );
+      await createNotification({
+        user_id: editUser.id,
+        type: 'role_change',
+        title: 'Your role has been updated',
+        message: `Your role is now ${ROLES.find(r => r.value === newRole)?.label || newRole}.`,
+        data: { newRole, changedBy: currentUser?.id }
+      });
       
       // Refresh users list
       await fetchUsers();

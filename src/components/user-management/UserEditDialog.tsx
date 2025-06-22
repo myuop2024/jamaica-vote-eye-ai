@@ -114,11 +114,8 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
     return null;
   };
 
-  const handleAddressDataChange = (newAddress: string, newParish?: string) => {
+  const handleAddressDataChange = (newAddress: string, coordinates?: { lat: number; lng: number }) => {
     setAddress(newAddress);
-    if (newParish && JAMAICAN_PARISHES.includes(newParish)) {
-      setParish(newParish);
-    }
     if (error) setError(null);
   };
 
@@ -146,7 +143,7 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
     setError(null);
 
     try {
-      const updatePayload: Partial<User> = {
+      const updatePayload = {
         name: name.trim(),
         phone_number: phoneNumber.trim() || undefined,
         role: role,
@@ -178,11 +175,25 @@ export const UserEditDialog: React.FC<UserEditDialogProps> = ({
 
       if (updatedUserData) {
         const fullyUpdatedUser: User = {
-            ...user,
-            ...updatedUserData,
-            id: user.id,
-            email: user.email,
-            createdAt: user.createdAt,
+          id: user.id,
+          email: user.email,
+          name: updatedUserData.name,
+          role: updatedUserData.role as User['role'],
+          verificationStatus: updatedUserData.verification_status,
+          profileImage: updatedUserData.profile_image,
+          phoneNumber: updatedUserData.phone_number,
+          assignedStation: updatedUserData.assigned_station,
+          deploymentParish: updatedUserData.deployment_parish,
+          parish: updatedUserData.parish,
+          address: updatedUserData.address,
+          bankName: updatedUserData.bank_name,
+          bankAccountNumber: updatedUserData.bank_account_number,
+          bankRoutingNumber: updatedUserData.bank_routing_number,
+          trn: updatedUserData.trn,
+          createdAt: user.createdAt,
+          lastLogin: user.lastLogin,
+          date_of_birth: updatedUserData.date_of_birth,
+          unique_user_id: updatedUserData.unique_user_id,
         };
         onUserUpdated(fullyUpdatedUser);
       }
