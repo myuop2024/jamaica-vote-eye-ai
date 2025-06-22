@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MessageSquare, Send, Users, Calendar, CheckCircle } from 'lucide-react';
-import { createNotification } from '@/services/notificationService';
+import { createNotification, notifyAllUsers } from '@/services/notificationService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Communication {
@@ -44,7 +44,8 @@ export const CommunicationsManager: React.FC = () => {
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [notifTitle, setNotifTitle] = useState('');
   const [notifMessage, setNotifMessage] = useState('');
-  const [notifAudience, setNotifAudience] = useState('all');
+  // const [notifAudience, setNotifAudience] = useState('all'); // No longer needed for "all users"
+  const [notifType, setNotifType] = useState('site_notice'); // Default type
   const [notifSending, setNotifSending] = useState(false);
 
   useEffect(() => {
@@ -154,32 +155,33 @@ export const CommunicationsManager: React.FC = () => {
   };
 
   const handleSendSiteNotification = async () => {
+    if (!notifTitle || !notifMessage || !notifType) {
+      toast({ title: 'Error', description: 'Title, message, and type are required.', variant: 'destructive' });
+      return;
+    }
     setNotifSending(true);
     try {
-      let userQuery = supabase.from('profiles').select('id');
-      if (notifAudience === 'verified') {
-        userQuery = userQuery.eq('verification_status', 'verified');
-      } else if (notifAudience === 'pending') {
-        userQuery = userQuery.eq('verification_status', 'pending');
-      }
-      const { data: users, error: userError } = await userQuery;
-      if (!userError && users) {
-        for (const u of users) {
-          await createNotification({
-            user_id: u.id,
-            type: 'site_notice',
-            title: notifTitle,
-            message: notifMessage
-          });
-        }
-      }
-      toast({ title: 'Notification Sent', description: 'Site notification sent to users.' });
+      const result = await notifyAllUsers({
+        type: notifType,
+        title: notifTitle,
+        message: notifMessage,
+      });
+
+      toast({
+        title: 'Notification Broadcast Started',
+        description: `Processing notifications for ${result.usersProcessed || 'all'} users. Check logs for details.`
+      });
       setShowNotifModal(false);
       setNotifTitle('');
       setNotifMessage('');
-      setNotifAudience('all');
+      setNotifType('site_notice'); // Reset to default
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Failed to send notification', variant: 'destructive' });
+      console.error("Error sending site notification to all users:", error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send notification to all users. Check console for details.',
+        variant: 'destructive'
+      });
     } finally {
       setNotifSending(false);
     }
@@ -217,7 +219,12 @@ export const CommunicationsManager: React.FC = () => {
               onChange={e => setNotifMessage(e.target.value)}
               rows={4}
             />
-            <Select value={notifAudience} onValueChange={setNotifAudience}>
+            <Input
+              placeholder="Notification Type (e.g., site_update, announcement)"
+              value={notifType}
+              onChange={e => setNotifType(e.target.value)}
+            />
+            {/* <Select value={notifAudience} onValueChange={setNotifAudience}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Audience" />
               </SelectTrigger>
@@ -226,10 +233,11 @@ export const CommunicationsManager: React.FC = () => {
                 <SelectItem value="verified">Verified Users</SelectItem>
                 <SelectItem value="pending">Pending Users</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
+            <p className="text-sm text-gray-500">This notification will be sent to ALL users.</p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowNotifModal(false)} disabled={notifSending}>Cancel</Button>
-              <Button onClick={handleSendSiteNotification} disabled={notifSending || !notifTitle || !notifMessage}>
+              <Button onClick={handleSendSiteNotification} disabled={notifSending || !notifTitle || !notifMessage || !notifType}>
                 {notifSending ? 'Sending...' : 'Send Notification'}
               </Button>
             </div>
