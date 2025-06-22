@@ -60,3 +60,22 @@ export const markAllNotificationsAsRead = async (userId: string) => {
 
   if (error) throw error;
 };
+
+export const notifyChatEvent = async (
+  userId: string,
+  type: string,
+  title: string,
+  data?: any
+) => {
+  try {
+    await createNotification({
+      user_id: userId,
+      type,
+      title,
+      message: title,
+      data,
+    });
+  } catch (error) {
+    console.error('Failed to create chat notification:', error);
+  }
+};
