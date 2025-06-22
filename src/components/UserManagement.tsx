@@ -80,12 +80,12 @@ export const UserManagement: React.FC = () => {
             users={filteredUsers}
             selectedUsers={selectedUsers}
             onUserSelection={handleUserSelection}
-            onEdit={(user) => {
+            onEdit={(user: User) => {
               setSelectedUser(user);
               setIsEditDialogOpen(true);
             }}
             onDelete={handleDeleteUser}
-            onViewDetails={(user) => {
+            onViewDetails={(user: User) => {
               setSelectedUser(user);
               setIsDetailsDialogOpen(true);
             }}
@@ -107,7 +107,7 @@ export const UserManagement: React.FC = () => {
         user={selectedUser}
         isOpen={isDetailsDialogOpen}
         onClose={() => setIsDetailsDialogOpen(false)}
-        onEdit={(user) => {
+        onEdit={(user: User) => {
           setIsDetailsDialogOpen(false);
           setIsEditDialogOpen(true);
         }}
