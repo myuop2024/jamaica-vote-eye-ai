@@ -1,47 +1,18 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  Shield,
-  MessageSquare,
-  CreditCard,
-  Building,
-  Hash
-} from 'lucide-react';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  verification_status: 'pending' | 'verified' | 'rejected';
-  phone_number?: string;
-  assigned_station?: string;
-  deploymentParish?: string;
-  parish?: string;
-  address?: string;
-  bank_name?: string;
-  bank_account_number?: string;
-  bank_routing_number?: string;
-  trn?: string;
-  created_at: string;
-  last_login?: string;
-}
+import { User, Mail, Phone, MapPin, Calendar, CreditCard, Edit, MessageCircle } from 'lucide-react';
+import { User as UserType } from '@/types/auth';
 
 interface UserDetailsDialogProps {
-  user: UserProfile | null;
+  user: UserType | null;
   isOpen: boolean;
   onClose: () => void;
-  onEdit: (user: UserProfile) => void;
-  onSendMessage: (user: UserProfile) => void;
+  onEdit: (user: UserType) => void;
+  onSendMessage: (user: UserType) => void;
 }
 
 export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
@@ -68,217 +39,207 @@ export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
       : 'bg-blue-100 text-blue-800 border-blue-200';
   };
 
-  const maskBankAccount = (accountNumber?: string) => {
-    if (!accountNumber) return null;
-    if (accountNumber.length <= 4) return accountNumber;
-    return `****${accountNumber.slice(-4)}`;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            User Details
+            User Details: {user.name}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold">{user.name}</h3>
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Basic Information</h3>
               <div className="flex gap-2">
                 <Badge className={`${getRoleBadge(user.role)} border`}>
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </Badge>
-                <Badge className={`${getStatusBadge(user.verification_status)} border`}>
-                  {user.verification_status.charAt(0).toUpperCase() + user.verification_status.slice(1)}
+                <Badge className={`${getStatusBadge(user.verificationStatus)} border`}>
+                  {user.verificationStatus.charAt(0).toUpperCase() + user.verificationStatus.slice(1)}
                 </Badge>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => onSendMessage(user)}>
-                <MessageSquare className="w-4 h-4 mr-1" />
-                Message
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => onEdit(user)}>
-                <Shield className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Mail className="w-4 h-4" />
+                  <span className="font-medium">Email:</span>
+                </div>
+                <p className="text-sm">{user.email}</p>
+              </div>
+
+              {user.phoneNumber && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Phone className="w-4 h-4" />
+                    <span className="font-medium">Phone:</span>
+                  </div>
+                  <p className="text-sm">{user.phoneNumber}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <Calendar className="w-4 h-4" />
+                  <span className="font-medium">Joined:</span>
+                </div>
+                <p className="text-sm">{new Date(user.createdAt).toLocaleDateString()}</p>
+              </div>
+
+              {user.lastLogin && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-medium">Last Login:</span>
+                  </div>
+                  <p className="text-sm">{new Date(user.lastLogin).toLocaleDateString()}</p>
+                </div>
+              )}
+
+              {user.unique_user_id && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span className="font-medium">User ID:</span>
+                  </div>
+                  <p className="text-sm font-mono">{user.unique_user_id}</p>
+                </div>
+              )}
+
+              {user.date_of_birth && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-medium">Date of Birth:</span>
+                  </div>
+                  <p className="text-sm">{new Date(user.date_of_birth).toLocaleDateString()}</p>
+                </div>
+              )}
             </div>
           </div>
 
           <Separator />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Contact Information
-              </h4>
-              
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <Mail className="w-4 h-4 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-sm break-all">{user.email}</p>
+          {/* Location Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Location Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {user.assignedStation && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <MapPin className="w-4 h-4" />
+                    <span className="font-medium">Assigned Station:</span>
                   </div>
+                  <p className="text-sm">{user.assignedStation}</p>
                 </div>
+              )}
 
-                {user.phone_number && (
-                  <div className="flex items-start gap-3">
-                    <Phone className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Phone</p>
-                      <p className="text-sm">{user.phone_number}</p>
-                    </div>
+              {user.deploymentParish && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <MapPin className="w-4 h-4" />
+                    <span className="font-medium">Deployment Parish:</span>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {/* Location Information */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Location Details
-              </h4>
-              
-              <div className="space-y-3">
-                {user.deploymentParish && (
-                  <div className="grid grid-cols-3 gap-4 py-2 border-b">
-                    <p className="text-sm font-medium text-gray-500">Deployment Parish</p>
-                    <p className="text-sm col-span-2">{user.deploymentParish}</p>
-                  </div>
-                )}
-
-                {user.parish && (
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Parish</p>
-                      <p className="text-sm">{user.parish}</p>
-                    </div>
-                  </div>
-                )}
-
-                {user.address && (
-                  <div className="flex items-start gap-3">
-                    <Building className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Address</p>
-                      <p className="text-sm">{user.address}</p>
-                    </div>
-                  </div>
-                )}
-
-                {user.assigned_station && (
-                  <div className="flex items-start gap-3">
-                    <Building className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Assigned Station</p>
-                      <p className="text-sm">{user.assigned_station}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Account Information */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Account Information
-              </h4>
-              
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-4 h-4 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Joined</p>
-                    <p className="text-sm">{new Date(user.created_at).toLocaleDateString()}</p>
-                  </div>
+                  <p className="text-sm">{user.deploymentParish}</p>
                 </div>
+              )}
 
-                {user.last_login && (
-                  <div className="flex items-start gap-3">
-                    <Clock className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Last Login</p>
-                      <p className="text-sm">{new Date(user.last_login).toLocaleDateString()}</p>
-                    </div>
+              {user.parish && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <MapPin className="w-4 h-4" />
+                    <span className="font-medium">Parish:</span>
                   </div>
-                )}
+                  <p className="text-sm">{user.parish}</p>
+                </div>
+              )}
 
-                {user.trn && (
-                  <div className="flex items-start gap-3">
-                    <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">TRN</p>
-                      <p className="text-sm font-mono">{user.trn}</p>
-                    </div>
+              {user.address && (
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <MapPin className="w-4 h-4" />
+                    <span className="font-medium">Address:</span>
                   </div>
-                )}
-              </div>
+                  <p className="text-sm">{user.address}</p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Banking Information Section */}
-          {(user.bank_name || user.bank_account_number || user.bank_routing_number) && (
+          {/* Banking Information */}
+          {(user.bankName || user.bankAccountNumber || user.bankRoutingNumber || user.trn) && (
             <>
               <Separator />
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  Banking Information
-                </h4>
+                <h3 className="text-lg font-semibold">Banking Information</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {user.bank_name && (
-                    <div className="flex items-start gap-3">
-                      <CreditCard className="w-4 h-4 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Bank Name</p>
-                        <p className="text-sm">{user.bank_name}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {user.bankName && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="font-medium">Bank Name:</span>
                       </div>
+                      <p className="text-sm">{user.bankName}</p>
                     </div>
                   )}
 
-                  {user.bank_account_number && (
-                    <div className="flex items-start gap-3">
-                      <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Account Number</p>
-                        <p className="text-sm font-mono">{maskBankAccount(user.bank_account_number)}</p>
+                  {user.bankAccountNumber && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="font-medium">Account Number:</span>
                       </div>
+                      <p className="text-sm font-mono">****{user.bankAccountNumber.slice(-4)}</p>
                     </div>
                   )}
 
-                  {user.bank_routing_number && (
-                    <div className="flex items-start gap-3">
-                      <Hash className="w-4 h-4 text-gray-400 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Routing Number</p>
-                        <p className="text-sm font-mono">{user.bank_routing_number}</p>
+                  {user.bankRoutingNumber && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="font-medium">Routing Number:</span>
                       </div>
+                      <p className="text-sm font-mono">{user.bankRoutingNumber}</p>
+                    </div>
+                  )}
+
+                  {user.trn && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="font-medium">TRN:</span>
+                      </div>
+                      <p className="text-sm font-mono">{user.trn}</p>
                     </div>
                   )}
                 </div>
               </div>
             </>
           )}
+        </div>
 
-          <Separator />
-
-          <div className="space-y-4">
-            <h4 className="font-semibold text-gray-900">Recent Activity</h4>
-            <div className="text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
-              <p>Activity tracking will be implemented in the next phase.</p>
-            </div>
-          </div>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button
+            variant="outline"
+            onClick={() => onSendMessage(user)}
+            className="text-blue-600"
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Send Message
+          </Button>
+          <Button
+            onClick={() => onEdit(user)}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Edit User
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
