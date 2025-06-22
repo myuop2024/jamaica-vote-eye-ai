@@ -75,17 +75,17 @@ export const useCommunicationsSettings = () => {
         .eq('key', 'smtp_config')
         .single();
 
-      if (twilioData?.value) {
+      if (twilioData?.value && typeof twilioData.value === 'object') {
         setSettings(prev => ({
           ...prev,
-          twilio: { ...prev.twilio, ...twilioData.value }
+          twilio: { ...prev.twilio, ...(twilioData.value as any) }
         }));
       }
 
-      if (smtpData?.value) {
+      if (smtpData?.value && typeof smtpData.value === 'object') {
         setSettings(prev => ({
           ...prev,
-          smtp: { ...prev.smtp, ...smtpData.value }
+          smtp: { ...prev.smtp, ...(smtpData.value as any) }
         }));
       }
     } catch (error) {
@@ -108,7 +108,7 @@ export const useCommunicationsSettings = () => {
         .from('system_settings')
         .upsert({
           key: 'twilio_config',
-          value: settings.twilio,
+          value: settings.twilio as any,
           description: 'Twilio SMS configuration'
         });
 
@@ -138,7 +138,7 @@ export const useCommunicationsSettings = () => {
         .from('system_settings')
         .upsert({
           key: 'smtp_config',
-          value: settings.smtp,
+          value: settings.smtp as any,
           description: 'SMTP email configuration'
         });
 

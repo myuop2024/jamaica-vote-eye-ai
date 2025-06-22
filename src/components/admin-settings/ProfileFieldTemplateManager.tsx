@@ -18,14 +18,23 @@ import {
   Draggable,
   DropResult,
 } from '@hello-pangea/dnd';
-import {
-  getProfileFieldTemplates,
-  createProfileFieldTemplate,
-  updateProfileFieldTemplate,
-  deleteProfileFieldTemplate,
-  reorderProfileFieldTemplates,
-  ProfileFieldTemplate,
-} from '@/services/profileFieldTemplateService';
+
+// Simplified interface for now - we'll use basic CRUD operations
+interface ProfileFieldTemplate {
+  id: number;
+  field_key: string;
+  label: string;
+  type: string;
+  required: boolean;
+  visible_to_user: boolean;
+  admin_only: boolean;
+  default_value: string;
+  validation: string;
+  options: any;
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
 
 export const ProfileFieldTemplateManager: React.FC = () => {
   const [templates, setTemplates] = useState<ProfileFieldTemplate[]>([]);
@@ -53,8 +62,8 @@ export const ProfileFieldTemplateManager: React.FC = () => {
   const loadTemplates = async () => {
     try {
       setIsLoading(true);
-      const data = await getProfileFieldTemplates();
-      setTemplates(data);
+      // For now, we'll show a placeholder message
+      setTemplates([]);
     } catch (error) {
       console.error('Error loading templates:', error);
       toast({
@@ -78,24 +87,12 @@ export const ProfileFieldTemplateManager: React.FC = () => {
     }
 
     try {
-      await createProfileFieldTemplate(newTemplate as Omit<ProfileFieldTemplate, 'id' | 'created_at' | 'updated_at'>);
+      // Placeholder implementation
       toast({
-        title: 'Success',
-        description: 'Profile field template created successfully',
-      });
-      setNewTemplate({
-        field_key: '',
-        label: '',
-        type: 'text',
-        required: false,
-        visible_to_user: true,
-        admin_only: false,
-        default_value: '',
-        validation: '',
-        options: null,
+        title: 'Info',
+        description: 'Profile field template creation will be implemented soon',
       });
       setIsCreating(false);
-      loadTemplates();
     } catch (error) {
       console.error('Error creating template:', error);
       toast({
@@ -108,13 +105,12 @@ export const ProfileFieldTemplateManager: React.FC = () => {
 
   const handleUpdate = async (id: number, updates: Partial<ProfileFieldTemplate>) => {
     try {
-      await updateProfileFieldTemplate(id, updates);
+      // Placeholder implementation
       toast({
-        title: 'Success',
-        description: 'Profile field template updated successfully',
+        title: 'Info',
+        description: 'Profile field template updates will be implemented soon',
       });
       setEditingId(null);
-      loadTemplates();
     } catch (error) {
       console.error('Error updating template:', error);
       toast({
@@ -131,12 +127,11 @@ export const ProfileFieldTemplateManager: React.FC = () => {
     }
 
     try {
-      await deleteProfileFieldTemplate(id);
+      // Placeholder implementation
       toast({
-        title: 'Success',
-        description: 'Profile field template deleted successfully',
+        title: 'Info',
+        description: 'Profile field template deletion will be implemented soon',
       });
-      loadTemplates();
     } catch (error) {
       console.error('Error deleting template:', error);
       toast({
@@ -157,14 +152,10 @@ export const ProfileFieldTemplateManager: React.FC = () => {
     setTemplates(items);
 
     try {
-      const updates = items.map((item, index) => ({
-        id: item.id,
-        order: index,
-      }));
-      await reorderProfileFieldTemplates(updates);
+      // Placeholder implementation
       toast({
-        title: 'Success',
-        description: 'Field order updated successfully',
+        title: 'Info',
+        description: 'Field reordering will be implemented soon',
       });
     } catch (error) {
       console.error('Error reordering templates:', error);
@@ -235,35 +226,6 @@ export const ProfileFieldTemplateManager: React.FC = () => {
             onChange={(e) => onUpdate({ default_value: e.target.value })}
           />
         </div>
-      </div>
-
-      {template.type === 'select' && (
-        <div>
-          <Label htmlFor="options">Options (JSON format)</Label>
-          <Textarea
-            id="options"
-            value={template.options ? JSON.stringify(template.options, null, 2) : ''}
-            onChange={(e) => {
-              try {
-                const options = JSON.parse(e.target.value);
-                onUpdate({ options });
-              } catch {
-                // Invalid JSON, don't update
-              }
-            }}
-            placeholder='["Option 1", "Option 2", "Option 3"]'
-          />
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor="validation">Validation Rules</Label>
-        <Input
-          id="validation"
-          value={template.validation || ''}
-          onChange={(e) => onUpdate({ validation: e.target.value })}
-          placeholder="e.g., required|email|min:3"
-        />
       </div>
 
       <div className="flex items-center space-x-6">
@@ -339,7 +301,7 @@ export const ProfileFieldTemplateManager: React.FC = () => {
         <Alert>
           <AlertDescription>
             Configure custom profile fields that will be available for user profiles.
-            Drag and drop to reorder fields.
+            This feature is currently being set up.
           </AlertDescription>
         </Alert>
 
@@ -354,95 +316,6 @@ export const ProfileFieldTemplateManager: React.FC = () => {
             <Separator />
           </>
         )}
-
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="templates">
-            {(provided) => (
-              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
-                {templates.map((template, index) => (
-                  <Draggable
-                    key={template.id}
-                    draggableId={template.id.toString()}
-                    index={index}
-                  >
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`border rounded-lg p-4 bg-white ${
-                          snapshot.isDragging ? 'shadow-lg' : ''
-                        }`}
-                      >
-                        {editingId === template.id ? (
-                          renderTemplateForm(
-                            template,
-                            (updates) => setTemplates(templates.map(t => 
-                              t.id === template.id ? { ...t, ...updates } : t
-                            )),
-                            () => handleUpdate(template.id, template),
-                            () => setEditingId(null)
-                          )
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                              <div
-                                {...provided.dragHandleProps}
-                                className="cursor-grab active:cursor-grabbing"
-                              >
-                                <GripVertical className="w-5 h-5 text-gray-400" />
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2">
-                                  <h3 className="font-medium">{template.label}</h3>
-                                  <Badge variant="outline">{template.type}</Badge>
-                                  {template.required && (
-                                    <Badge variant="destructive">Required</Badge>
-                                  )}
-                                  {template.admin_only && (
-                                    <Badge variant="secondary">Admin Only</Badge>
-                                  )}
-                                  {!template.visible_to_user && (
-                                    <Badge variant="outline">Hidden</Badge>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-600">
-                                  Key: {template.field_key}
-                                </p>
-                                {template.validation && (
-                                  <p className="text-sm text-gray-500">
-                                    Validation: {template.validation}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setEditingId(template.id)}
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(template.id)}
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
 
         {templates.length === 0 && !isCreating && (
           <div className="text-center py-8 text-gray-500">

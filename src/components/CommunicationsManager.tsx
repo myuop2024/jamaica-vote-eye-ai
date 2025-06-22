@@ -101,12 +101,12 @@ export const CommunicationsManager: React.FC = () => {
       const { data: users, error: userError } = await userQuery;
       if (!userError && users) {
         for (const u of users) {
-          await createNotification(
-            u.id,
-            'admin_message',
-            campaignName,
-            messageContent
-          );
+          await createNotification({
+            user_id: u.id,
+            type: 'admin_message',
+            title: campaignName,
+            message: messageContent
+          });
         }
       }
 
@@ -165,12 +165,12 @@ export const CommunicationsManager: React.FC = () => {
       const { data: users, error: userError } = await userQuery;
       if (!userError && users) {
         for (const u of users) {
-          await createNotification(
-            u.id,
-            'site_notice',
-            notifTitle,
-            notifMessage
-          );
+          await createNotification({
+            user_id: u.id,
+            type: 'site_notice',
+            title: notifTitle,
+            message: notifMessage
+          });
         }
       }
       toast({ title: 'Notification Sent', description: 'Site notification sent to users.' });

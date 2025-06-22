@@ -14,10 +14,10 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import IdentityVerification from "./pages/IdentityVerification";
 import EncryptionManagement from "./pages/EncryptionManagement";
-import GmailCallback from "./pages/GmailCallback";
+import { GmailCallback } from "./pages/GmailCallback";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
