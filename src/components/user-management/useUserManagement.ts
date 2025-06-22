@@ -13,6 +13,20 @@ interface UserProfile {
   assigned_station?: string;
   created_at: string;
   last_login?: string;
+  // Add missing properties to match User interface
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  createdAt: string;
+  // Add other User properties that might be needed
+  profileImage?: string;
+  deploymentParish?: string;
+  parish?: string;
+  address?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankRoutingNumber?: string;
+  trn?: string;
+  date_of_birth?: string;
+  unique_user_id?: string;
 }
 
 export const useUserManagement = () => {

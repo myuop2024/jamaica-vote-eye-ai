@@ -22,7 +22,23 @@ export const fetchUsers = async () => {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  
+  // Map database fields to User interface format
+  return (data || []).map(user => ({
+    ...user,
+    verificationStatus: user.verification_status,
+    createdAt: user.created_at,
+    phoneNumber: user.phone_number,
+    assignedStation: user.assigned_station,
+    lastLogin: user.last_login,
+    profileImage: user.profile_image,
+    deploymentParish: user.deployment_parish,
+    bankName: user.bank_name,
+    bankAccountNumber: user.bank_account_number,
+    bankRoutingNumber: user.bank_routing_number,
+    dateOfBirth: user.date_of_birth,
+    uniqueUserId: user.unique_user_id
+  }));
 };
 
 export const performBulkAction = async (action: string, selectedUsers: string[], value?: string) => {
