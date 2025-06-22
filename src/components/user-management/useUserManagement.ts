@@ -2,36 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { fetchUsers, performBulkAction, updateUserStatus, deleteUser } from './UserOperations';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  verification_status: 'pending' | 'verified' | 'rejected';
-  phone_number?: string;
-  assigned_station?: string;
-  created_at: string;
-  last_login?: string;
-  // Add missing properties to match User interface
-  verificationStatus: 'pending' | 'verified' | 'rejected';
-  createdAt: string;
-  // Add other User properties that might be needed
-  profileImage?: string;
-  deploymentParish?: string;
-  parish?: string;
-  address?: string;
-  bankName?: string;
-  bankAccountNumber?: string;
-  bankRoutingNumber?: string;
-  trn?: string;
-  date_of_birth?: string;
-  unique_user_id?: string;
-}
+import { User } from '@/types/auth';
 
 export const useUserManagement = () => {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -43,7 +18,7 @@ export const useUserManagement = () => {
   const [dateFilter, setDateFilter] = useState<string>('all');
   
   // Dialog states
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   
@@ -74,7 +49,7 @@ export const useUserManagement = () => {
       filtered = filtered.filter(user =>
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.phone_number && user.phone_number.includes(searchTerm))
+        (user.phoneNumber && user.phoneNumber.includes(searchTerm))
       );
     }
 
@@ -85,12 +60,12 @@ export const useUserManagement = () => {
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(user => user.verification_status === statusFilter);
+      filtered = filtered.filter(user => user.verificationStatus === statusFilter);
     }
 
     // Station filter
     if (stationFilter !== 'all') {
-      filtered = filtered.filter(user => user.assigned_station === stationFilter);
+      filtered = filtered.filter(user => user.assignedStation === stationFilter);
     }
 
     // Date filter
@@ -112,7 +87,7 @@ export const useUserManagement = () => {
       
       if (dateFilter !== 'all') {
         filtered = filtered.filter(user => 
-          new Date(user.created_at) >= filterDate
+          new Date(user.createdAt) >= filterDate
         );
       }
     }
@@ -221,7 +196,7 @@ export const useUserManagement = () => {
     }
   };
 
-  const handleSendMessage = (user: UserProfile) => {
+  const handleSendMessage = (user: User) => {
     toast({
       title: "Message Feature",
       description: "Direct messaging will be implemented in the communications phase"

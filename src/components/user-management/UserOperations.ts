@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { User } from '@/types/auth';
 
 export const updateUserStatus = async (userId: string, status: 'pending' | 'verified' | 'rejected') => {
   const { error } = await supabase
@@ -15,7 +16,7 @@ export const deleteUser = async (userId: string) => {
   if (error) throw error;
 };
 
-export const fetchUsers = async () => {
+export const fetchUsers = async (): Promise<User[]> => {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -25,7 +26,10 @@ export const fetchUsers = async () => {
   
   // Map database fields to User interface format
   return (data || []).map(user => ({
-    ...user,
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as User['role'],
     verificationStatus: user.verification_status,
     createdAt: user.created_at,
     phoneNumber: user.phone_number,
@@ -33,11 +37,14 @@ export const fetchUsers = async () => {
     lastLogin: user.last_login,
     profileImage: user.profile_image,
     deploymentParish: user.deployment_parish,
+    parish: user.parish,
+    address: user.address,
     bankName: user.bank_name,
     bankAccountNumber: user.bank_account_number,
     bankRoutingNumber: user.bank_routing_number,
-    dateOfBirth: user.date_of_birth,
-    uniqueUserId: user.unique_user_id
+    trn: user.trn,
+    date_of_birth: user.date_of_birth,
+    unique_user_id: user.unique_user_id
   }));
 };
 

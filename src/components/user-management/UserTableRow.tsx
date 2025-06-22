@@ -5,26 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Edit, Trash2, Eye, Phone, Mail, MapPin } from 'lucide-react';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  verification_status: 'pending' | 'verified' | 'rejected';
-  phone_number?: string;
-  assigned_station?: string;
-  created_at: string;
-  last_login?: string;
-}
+import { User } from '@/types/auth';
 
 interface UserTableRowProps {
-  user: UserProfile;
+  user: User;
   isSelected: boolean;
   onSelect: (userId: string, selected: boolean) => void;
-  onEdit: (user: UserProfile) => void;
+  onEdit: (user: User) => void;
   onDelete: (userId: string) => void;
-  onViewDetails: (user: UserProfile) => void;
+  onViewDetails: (user: User) => void;
 }
 
 export const UserTableRow: React.FC<UserTableRowProps> = ({
@@ -65,10 +54,10 @@ export const UserTableRow: React.FC<UserTableRowProps> = ({
             <Mail className="w-3 h-3" />
             {user.email}
           </div>
-          {user.phone_number && (
+          {user.phoneNumber && (
             <div className="flex items-center gap-1 text-sm text-gray-500">
               <Phone className="w-3 h-3" />
-              {user.phone_number}
+              {user.phoneNumber}
             </div>
           )}
         </div>
@@ -79,22 +68,22 @@ export const UserTableRow: React.FC<UserTableRowProps> = ({
         </Badge>
       </TableCell>
       <TableCell>
-        <Badge className={`${getStatusBadge(user.verification_status)} border`}>
-          {user.verification_status.charAt(0).toUpperCase() + user.verification_status.slice(1)}
+        <Badge className={`${getStatusBadge(user.verificationStatus)} border`}>
+          {user.verificationStatus.charAt(0).toUpperCase() + user.verificationStatus.slice(1)}
         </Badge>
       </TableCell>
       <TableCell>
-        {user.assigned_station ? (
+        {user.assignedStation ? (
           <div className="flex items-center gap-1 text-sm">
             <MapPin className="w-3 h-3 text-gray-400" />
-            {user.assigned_station}
+            {user.assignedStation}
           </div>
         ) : (
           <span className="text-gray-400">-</span>
         )}
       </TableCell>
       <TableCell className="text-sm text-gray-500">
-        {new Date(user.created_at).toLocaleDateString()}
+        {new Date(user.createdAt).toLocaleDateString()}
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">

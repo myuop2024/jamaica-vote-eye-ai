@@ -3,26 +3,15 @@ import React from 'react';
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users } from 'lucide-react';
 import { UserTableRow } from './UserTableRow';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  verification_status: 'pending' | 'verified' | 'rejected';
-  phone_number?: string;
-  assigned_station?: string;
-  created_at: string;
-  last_login?: string;
-}
+import { User } from '@/types/auth';
 
 interface UserTableProps {
-  users: UserProfile[];
+  users: User[];
   selectedUsers: string[];
   onUserSelection: (userId: string, selected: boolean) => void;
-  onEdit: (user: UserProfile) => void;
+  onEdit: (user: User) => void;
   onDelete: (userId: string) => void;
-  onViewDetails: (user: UserProfile) => void;
+  onViewDetails: (user: User) => void;
 }
 
 export const UserTable: React.FC<UserTableProps> = ({
