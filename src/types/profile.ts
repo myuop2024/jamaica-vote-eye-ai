@@ -1,4 +1,6 @@
 
+import { User } from '@/types/auth';
+
 export type ProfileFieldType = 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'file';
 
 export interface ProfileFieldTemplate {

@@ -8,6 +8,7 @@ import { UserTable } from './user-management/UserTable';
 import { UserEditDialog } from './user-management/UserEditDialog';
 import { UserDetailsDialog } from './user-management/UserDetailsDialog';
 import { useUserManagement } from './user-management/useUserManagement';
+import { User } from '@/types/auth';
 
 export const UserManagement: React.FC = () => {
   const {

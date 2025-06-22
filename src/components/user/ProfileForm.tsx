@@ -8,14 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { ProfileData, UserProfile } from '@/types/profile'; // Assuming UserProfile includes new fields
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDateToDisplay, parseDisplayDateToISO, formatDateToISO, parseDisplayDateToDateObject } from '@/lib/utils';
 import { format as formatDateFns } from 'date-fns';
-
 
 const JAMAICA_PARISHES = [
   'Kingston',
@@ -35,7 +33,7 @@ const JAMAICA_PARISHES = [
 ];
 
 export const ProfileForm: React.FC = () => {
-  const { user, refreshUserProfile } = useAuth(); // Assuming refreshUserProfile updates AuthContext
+  const { user, refreshUserProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState('');
@@ -47,21 +45,18 @@ export const ProfileForm: React.FC = () => {
   // Unique User ID will be displayed, not edited by user
   const [uniqueUserIdDisplay, setUniqueUserIdDisplay] = useState('');
 
-
   useEffect(() => {
     if (user) {
-      // Cast user to UserProfile to access all fields
-      const userProfile = user as UserProfile;
-      setName(userProfile.name || '');
-      setPhoneNumber(userProfile.phone_number || '');
-      setAddress(userProfile.address || '');
-      setParish(userProfile.parish || '');
-      setUniqueUserIdDisplay(userProfile.unique_user_id || 'N/A');
+      setName(user.name || '');
+      setPhoneNumber(user.phoneNumber || '');
+      setAddress(user.address || '');
+      setParish(user.parish || '');
+      setUniqueUserIdDisplay(user.unique_user_id || 'N/A');
 
       // Initialize dateOfBirth from user profile
-      if (userProfile.date_of_birth) {
+      if (user.date_of_birth) {
         // Supabase returns date as YYYY-MM-DD string
-        const dobDate = parseDisplayDateToDateObject(formatDateToDisplay(userProfile.date_of_birth));
+        const dobDate = parseDisplayDateToDateObject(formatDateToDisplay(user.date_of_birth));
         setDateOfBirth(dobDate || undefined);
       } else {
         setDateOfBirth(undefined);
@@ -80,7 +75,7 @@ export const ProfileForm: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const updateData: Partial<UserProfile> = {
+      const updateData = {
         name: name,
         phone_number: phoneNumber,
         address: address,
@@ -114,7 +109,6 @@ export const ProfileForm: React.FC = () => {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -223,7 +217,6 @@ export const ProfileForm: React.FC = () => {
                 className="bg-gray-100 cursor-not-allowed"
               />
             </div>
-
 
             <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading ? 'Updating...' : 'Update Profile'}

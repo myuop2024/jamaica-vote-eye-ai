@@ -806,6 +806,7 @@ export type Database = {
           bank_name: string | null
           bank_routing_number: string | null
           created_at: string
+          date_of_birth: string | null
           deployment_parish: string | null
           didit_confidence_score: number | null
           didit_verification_date: string | null
@@ -823,6 +824,7 @@ export type Database = {
           profile_image: string | null
           role: string
           trn: string | null
+          unique_user_id: string | null
           updated_at: string
           verification_status:
             | Database["public"]["Enums"]["verification_status"]
@@ -835,6 +837,7 @@ export type Database = {
           bank_name?: string | null
           bank_routing_number?: string | null
           created_at?: string
+          date_of_birth?: string | null
           deployment_parish?: string | null
           didit_confidence_score?: number | null
           didit_verification_date?: string | null
@@ -852,6 +855,7 @@ export type Database = {
           profile_image?: string | null
           role: string
           trn?: string | null
+          unique_user_id?: string | null
           updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
@@ -864,6 +868,7 @@ export type Database = {
           bank_name?: string | null
           bank_routing_number?: string | null
           created_at?: string
+          date_of_birth?: string | null
           deployment_parish?: string | null
           didit_confidence_score?: number | null
           didit_verification_date?: string | null
@@ -881,6 +886,7 @@ export type Database = {
           profile_image?: string | null
           role?: string
           trn?: string | null
+          unique_user_id?: string | null
           updated_at?: string
           verification_status?:
             | Database["public"]["Enums"]["verification_status"]
