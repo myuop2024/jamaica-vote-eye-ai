@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Sidebar,
@@ -28,20 +27,26 @@ const settingsSections = [
     description: 'System configuration'
   },
   {
+    id: 'users' as const,
+    label: 'User Settings',
+    icon: Users,
+    description: 'User preferences'
+  },
+  {
     id: 'didit' as const,
-    label: 'Didit Verification',
+    label: 'Didit Verification Settings',
     icon: Shield,
-    description: 'Identity verification'
+    description: 'Configure Didit integration'
   },
   {
     id: 'twilio' as const,
-    label: 'Twilio SMS',
+    label: 'Twilio SMS Settings',
     icon: Phone,
-    description: 'SMS service config'
+    description: 'Configure SMS provider'
   },
   {
     id: 'here-maps' as const,
-    label: 'HERE Maps',
+    label: 'HERE Maps Settings',
     icon: MapPin,
     description: 'Address & location services'
   },
@@ -49,43 +54,37 @@ const settingsSections = [
     id: 'sms-analytics' as const,
     label: 'SMS Analytics',
     icon: BarChart3,
-    description: 'SMS logs & stats'
+    description: 'View SMS logs & stats'
   },
   {
     id: 'notifications' as const,
-    label: 'Notifications',
+    label: 'Notifications Settings',
     icon: Bell,
-    description: 'Email & SMS alerts'
+    description: 'Configure email & SMS alerts'
   },
   {
     id: 'communications' as const,
-    label: 'Communications',
+    label: 'Communications Settings',
     icon: Mail,
-    description: 'Provider settings'
+    description: 'Provider and campaign settings'
   },
   {
     id: 'email-inbox' as const,
-    label: 'Email Inbox',
+    label: 'Email Inbox Settings',
     icon: Inbox,
-    description: 'Email management'
+    description: 'Email provider/configuration'
   },
   {
     id: 'security' as const,
-    label: 'Security',
+    label: 'Security Settings',
     icon: Key,
-    description: 'Auth & security'
+    description: 'Authentication & security'
   },
   {
     id: 'data' as const,
     label: 'Data Management',
     icon: Database,
-    description: 'Backup & retention'
-  },
-  {
-    id: 'users' as const,
-    label: 'User Settings',
-    icon: Users,
-    description: 'User preferences'
+    description: 'Backup & retention policies'
   }
 ];
 

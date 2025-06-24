@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,18 +21,18 @@ export const ManagementNavigation: React.FC<ManagementNavigationProps> = ({
       color: 'bg-blue-500'
     },
     {
-      id: 'inbox',
-      label: 'Email Inbox',
-      icon: Mail,
-      description: 'Connect and manage Gmail accounts for communication',
-      color: 'bg-purple-500'
-    },
-    {
       id: 'communications',
       label: 'Communications',
       icon: MessageSquare,
       description: 'Send messages and manage communication campaigns',
       color: 'bg-green-500'
+    },
+    {
+      id: 'inbox',
+      label: 'Email Inbox',
+      icon: Mail,
+      description: 'View and manage connected email accounts',
+      color: 'bg-purple-500'
     },
     {
       id: 'reports',
@@ -53,7 +52,7 @@ export const ManagementNavigation: React.FC<ManagementNavigationProps> = ({
       id: 'identity-verification',
       label: 'Identity Verification',
       icon: UserCheck,
-      description: 'Advanced identity verification with Didit',
+      description: 'Advanced identity verification (Didit workflow)',
       color: 'bg-indigo-500'
     },
     {
